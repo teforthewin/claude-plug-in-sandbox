@@ -15,6 +15,13 @@
       "source": "./plugins/test-case-generator",
       "tags": ["community", "test-enablement", "testing", "scenario-design"],
       "category": "testing"
+    },
+    {
+      "name": "flow-logger",
+      "description": "Real-time observability — logs agent/tool events to JSONL and serves a live dashboard with flow tree, token tracking, and dual themes (Classic + Cyber).",
+      "source": "./plugins/flow-logger",
+      "tags": ["observability", "logging", "dashboard", "agents", "tokens", "community"],
+      "category": "monitoring"
     }
   ]
 }

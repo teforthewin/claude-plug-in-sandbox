@@ -1,0 +1,29 @@
+{
+  "name": "flow-logger",
+  "version": "0.6.0",
+  "description": "Real-time observability for Claude Code — logs all agent/tool events to JSONL and serves a live dashboard with flow tree, token tracking, and dual themes.",
+  "author": {
+    "name": "Alexandre Denieul"
+  },
+  "license": "MIT",
+  "keywords": [
+    "observability",
+    "monitoring",
+    "dashboard",
+    "agents",
+    "flow",
+    "tokens"
+  ],
+  "userConfig": {
+    "log_directory": {
+      "title": "Log directory",
+      "description": "Directory where JSONL session logs are stored",
+      "type": "directory"
+    },
+    "dashboard_port": {
+      "title": "Dashboard port",
+      "description": "Port for the web dashboard (default: 7842)",
+      "type": "string"
+    }
+  }
+}
