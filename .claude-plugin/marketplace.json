@@ -5,6 +5,9 @@
     "description": "Sandbox marketplace for testing the test-case-generator plugin",
     "pluginRoot": "./plugins"
   },
+  "owner": {
+    "name": "Test Enablement"
+  },
   "plugins": [
     {
       "name": "test-case-generator",
