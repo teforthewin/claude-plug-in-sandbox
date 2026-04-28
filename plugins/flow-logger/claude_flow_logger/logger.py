@@ -52,7 +52,7 @@ def _resolve_project_dir() -> Path:
 def _find_project_dir_for_session(session_id: str) -> Path | None:
     """
     Scan ~/.claude/projects/ to find the project directory that owns this session.
-    Used as a fallback when the CWD encoding doesn't match (e.g. subagents).
+    Only matches on the presence of the exact session .jsonl file.
     """
     if not CLAUDE_PROJECTS_DIR.exists():
         return None
@@ -61,25 +61,16 @@ def _find_project_dir_for_session(session_id: str) -> Path | None:
             continue
         if (project_dir / f"{session_id}.jsonl").exists():
             return project_dir
-        # Subagent: session files live under {parent}/subagents/agent-*.jsonl,
-        # but their session_id may differ from the filename. Best effort: check
-        # whether any subagents dir exists in this project for this session.
-        for sub in project_dir.glob(f"*/subagents"):
-            if sub.is_dir():
-                return project_dir
     return None
 
 
 def _project_dir(session_id: str) -> Path:
-    """Resolve the project dir, preferring CWD encoding, falling back to scan."""
-    primary = _resolve_project_dir()
-    if primary.exists():
-        return primary
+    """Resolve the project dir by finding where the session .jsonl lives, falling back to CWD."""
     found = _find_project_dir_for_session(session_id)
     if found:
         return found
-    # Last resort: use the CWD-encoded path even if it doesn't exist yet
-    return primary
+    # Session not found yet (new session or unknown id) — fall back to CWD encoding
+    return _resolve_project_dir()
 
 
 def _cmd(tool_name: str, tool_input: dict) -> str:
