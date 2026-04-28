@@ -1,7 +1,7 @@
 {
   "name": "flow-logger",
-  "version": "0.6.0",
-  "description": "Real-time observability for Claude Code — logs all agent/tool events to JSONL and serves a live dashboard with flow tree, token tracking, and dual themes.",
+  "version": "0.7.0",
+  "description": "Observability plugin for Claude Code — captures every tool/agent/skill call from all sessions and subagents into sidecar .flow.jsonl files alongside Claude's native session logs.",
   "author": {
     "name": "Alexandre Denieul"
   },

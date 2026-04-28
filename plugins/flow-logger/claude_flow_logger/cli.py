@@ -1,87 +1,15 @@
 """
 CLI entry points for the claude-flow-logger package.
 
-  flow-server                    — start web dashboard (reads native ~/.claude/ sessions)
-  flow-diagram [session-id]      — generate Mermaid diagram from a native session
-  flow-install                   — manage hook installation (legacy; no hooks needed)
+  flow-install               — register hooks in .claude/settings.json
+  flow-install --global      — register hooks in ~/.claude/settings.json
+  flow-install --uninstall   — remove hooks
 """
 
 import json
-import shutil
 import sys
 from pathlib import Path
 
-
-# ---------------------------------------------------------------------------
-# flow-server — web dashboard
-# ---------------------------------------------------------------------------
-
-def server_main() -> None:
-    from .server import run
-    run(None)
-
-
-# ---------------------------------------------------------------------------
-# flow-diagram — CLI diagram generator (native sessions)
-# ---------------------------------------------------------------------------
-
-def diagram_main() -> None:
-    from . import parser as _parser
-    from .diagram import build_diagram
-
-    args = sys.argv[1:]
-
-    if "--list" in args:
-        sessions = _parser.discover_sessions()
-        if not sessions:
-            print("No Claude Code sessions found.")
-            return
-        from datetime import datetime
-        print(f"{'Session ID':<38} {'Project':<20} {'Modified':<20} {'Events':>6}")
-        print("-" * 90)
-        for ps in sessions:
-            mtime = datetime.fromtimestamp(ps.mtime).strftime("%Y-%m-%d %H:%M")
-            marker = " *LIVE*" if ps.is_active else ""
-            print(f"{ps.session_id:<38} {ps.project:<20} {mtime:<20} {len(ps.events):>6}{marker}")
-        return
-
-    to_stdout  = "--stdout" in args
-    positional = [a for a in args if not a.startswith("--")]
-
-    sessions = _parser.discover_sessions()
-    if not sessions:
-        print("No Claude Code sessions found.")
-        sys.exit(1)
-
-    if positional:
-        sid = positional[0]
-        ps  = next((s for s in sessions if s.session_id.startswith(sid)), None)
-        if ps is None:
-            print(f"Session '{sid}' not found. Use --list to see available sessions.")
-            sys.exit(1)
-    else:
-        ps = sessions[0]
-        print(f"Using most recent session: {ps.session_id} ({ps.project})")
-
-    diagram = build_diagram(ps.events, ps.session_id)
-    if to_stdout:
-        print(diagram)
-    else:
-        out = Path(f"flow-diagram-{ps.session_id[:8]}.md")
-        out.write_text(
-            f"# Flow Diagram — {ps.project} / {ps.session_id[:8]}\n\n"
-            f"- **Start:** {ps.first_ts()}\n"
-            f"- **End:**   {ps.last_ts()}\n"
-            f"- **Events:** {len(ps.events)}\n\n"
-            + diagram + "\n",
-            encoding="utf-8",
-        )
-        print(f"Diagram written to: {out}")
-
-
-# ---------------------------------------------------------------------------
-# flow-install — legacy hook manager (uninstall only)
-# ---------------------------------------------------------------------------
 
 _HOOK_MARKER = "claude-flow-logger"
 
@@ -121,10 +49,9 @@ def install_main() -> None:
     args = sys.argv[1:]
 
     if "--uninstall" in args:
-        # Remove legacy hooks from any settings.json that has them
         settings_path = _find_settings_json(Path.cwd())
         if settings_path is None:
-            print("No settings.json found with legacy hooks.")
+            print("No settings.json found with flow-logger hooks.")
             return
         try:
             settings = json.loads(settings_path.read_text(encoding="utf-8"))
@@ -135,19 +62,48 @@ def install_main() -> None:
             return
         settings = _remove_hooks(settings)
         settings_path.write_text(json.dumps(settings, indent=2, ensure_ascii=False), encoding="utf-8")
-        print(f"✓ Legacy hooks removed from {settings_path}")
+        print(f"Hooks removed from {settings_path}")
         return
 
-    # Native mode: no hooks needed
-    print()
-    print("claude-flow-logger v0.5+ reads native Claude Code session files directly.")
-    print("No hooks need to be installed.")
-    print()
-    from . import parser as _parser
-    sessions = _parser.discover_sessions()
-    print(f"  Sessions dir : {_parser.CLAUDE_PROJECTS_DIR}")
-    print(f"  Sessions found: {len(sessions)}")
-    print()
-    print("  Run 'flow-server' to start the dashboard.")
-    print("  Run 'flow-install --uninstall' to remove any legacy hooks.")
-    print()
+    use_global = "--global" in args
+    if use_global:
+        settings_path = Path.home() / ".claude" / "settings.json"
+    else:
+        settings_path = Path.cwd() / ".claude" / "settings.json"
+
+    settings_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        settings = json.loads(settings_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        settings = {}
+
+    if _hooks_already_installed(settings):
+        print(f"Hooks already installed in {settings_path}")
+        return
+
+    python = sys.executable
+    pkg    = str(Path(__file__).parent)
+
+    hook_block = {
+        "_source": _HOOK_MARKER,
+        "hooks": [
+            {
+                "type": "command",
+                "command": f"{python} {pkg}/logger.py {{event}}",
+            }
+        ],
+    }
+
+    hooks = settings.setdefault("hooks", {})
+    for event, arg in [
+        ("UserPromptSubmit", "prompt"),
+        ("PreToolUse",       "pre"),
+        ("PostToolUse",      "post"),
+    ]:
+        block = {**hook_block, "hooks": [{"type": "command", "command": f"{python} {pkg}/logger.py {arg}"}]}
+        if event == "PreToolUse" or event == "PostToolUse":
+            block["matcher"] = ".*"
+        hooks.setdefault(event, []).append(block)
+
+    settings_path.write_text(json.dumps(settings, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"Hooks installed in {settings_path}")
