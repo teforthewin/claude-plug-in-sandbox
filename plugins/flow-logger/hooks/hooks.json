@@ -1,6 +1,16 @@
 {
   "description": "Flow Logger — writes .flow.jsonl sidecars for every tool/agent/skill invocation",
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/setup.sh"
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "hooks": [

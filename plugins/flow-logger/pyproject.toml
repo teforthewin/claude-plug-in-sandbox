@@ -1,0 +1,17 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "claude-flow-logger"
+version = "0.7.0"
+description = "Claude Code plugin — captures every tool/agent/skill call into sidecar .flow.jsonl files."
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = []
+
+[project.scripts]
+flow-install = "claude_flow_logger.cli:install_main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["claude_flow_logger"]
