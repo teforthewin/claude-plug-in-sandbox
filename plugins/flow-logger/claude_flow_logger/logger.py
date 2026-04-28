@@ -37,7 +37,7 @@ def _truncate(value, max_len: int = 2000):
 
 def _encode_cwd(cwd: str) -> str:
     """Encode a filesystem path the same way Claude Code does for project folder names."""
-    return cwd.replace("/", "-")
+    return cwd.replace("/", "-").replace(".", "-")
 
 
 def _resolve_project_dir() -> Path:
