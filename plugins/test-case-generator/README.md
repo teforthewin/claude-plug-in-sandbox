@@ -16,23 +16,67 @@ The plugin produces **technology-agnostic Markdown** — no code, no selectors, 
 
 ```mermaid
 flowchart TD
-    U([User]) --> P0[Phase 0: 7-question gate]
-    P0 --> P1
+    U([User]) --> P0[Phase 0 — 7-question gate<br/>source / channels / testing levels /<br/>scope / domain+append / system / use cases]
+    P0 --> P1IN
+
     subgraph P1["Phase 1 — Knowledge Extraction"]
-        SC[source-curator<br/>raw inputs → MD files by domain + routing manifest] --> A[Active analysts only<br/>functional / technical / ui-ux / quality-compliance<br/>in parallel]
-        A --> CF{Conflicts?}
-        CF -->|Yes| HALT[Halt + ask user] --> A
-        CF -->|No| SA[skill-author → one Claude Code skill per domain<br/>under &lt;project&gt;/.claude/skills/&lt;feature-slug&gt;-&lt;domain&gt;/]
+        direction TB
+        P1IN[Raw inputs<br/>PDF / OpenAPI / wireframes / code / compliance docs] --> SC[source-curator<br/>ingest, translate, classify, split]
+        SC --> MAN[/curated/&lt;system&gt;/&lt;run_id&gt;/<br/>per-lens Markdown + manifest.md/]
+        MAN --> A_FUNC[functional-analyst]
+        MAN --> A_TECH[technical-architect]
+        MAN --> A_UI[ui-ux-specialist]
+        MAN --> A_NFR[quality-compliance-agent]
+        A_FUNC --> CF{Conflicts<br/>across lenses?}
+        A_TECH --> CF
+        A_UI --> CF
+        A_NFR --> CF
+        CF -->|Yes| HALT[Halt + surface to user<br/>resume after resolution] --> A_FUNC
+        CF -->|No| SA[skill-author<br/>idempotent merge — preserves ## Manual Notes<br/>boundary-warning pass non-blocking]
+        SA --> SK_F[/skills/functional-&lt;feature&gt;/SKILL.md/]
+        SA --> SK_T[/skills/technical-&lt;feature&gt;/SKILL.md/]
+        SA --> SK_U[/skills/ui-&lt;feature&gt;/SKILL.md/]
+        SA --> SK_N[/skills/nfr-&lt;feature&gt;/SKILL.md/]
+        SA --> SK_G[/skills/glossary-&lt;feature&gt;/SKILL.md/]
     end
-    P1 --> P2[Phase 2: Dispatch selected strategies in parallel<br/>component / integration / edge / limit / cross<br/>each reads the emitted SKILL.md files<br/>→ scenario-designer]
-    P2 --> P3[Phase 3: Merge, dedupe, re-sequence]
-    P3 -->|gap| P2
-    P3 --> P4[Phase 4: scenario-coverage-checker]
-    P4 -->|FAIL/PARTIAL| P2
-    P4 -->|PASS| P5[Phase 5: Write docs/test-cases/...md + deliver] --> U
+
+    SK_F --> P2IN
+    SK_T --> P2IN
+    SK_U --> P2IN
+    SK_N --> P2IN
+    SK_G -.glossary not consumed by strategies.-> P2IN
+
+    subgraph P2["Phase 2 — Strategy Dispatch (parallel)"]
+        direction TB
+        P2IN[Skill paths +<br/>channel + scope +<br/>already-covered list] --> S_C[component-strategy]
+        P2IN --> S_I[integration-strategy<br/>uses Sub-domain Refs + Interfaces]
+        P2IN --> S_E[edge-case-strategy]
+        P2IN --> S_L[limit-case-strategy<br/>keys off Logic Gate ranges]
+        P2IN --> S_X[cross-case-strategy]
+        S_C --> SD[scenario-designer<br/>writes TC Markdown — 5-field template]
+        S_I --> SD
+        S_E --> SD
+        S_L --> SD
+        S_X --> SD
+    end
+
+    SD --> P3[Phase 3 — Merge, dedupe, re-sequence<br/>multi-strategy TCs cross-reference]
+    P3 -->|strategy gap after merge| P2IN
+    P3 --> P4[Phase 4 — scenario-coverage-checker<br/>verifies AC coverage + NFR coverage<br/>+ tag completeness + tech-agnosticism]
+    P4 -->|FAIL / PARTIAL — max 2 iterations| P2IN
+    P4 -->|PASS| P5
+
+    subgraph P5["Phase 5 — Persist & Deliver"]
+        direction TB
+        P5_W[Write docs/test-cases/&lt;system&gt;/&lt;story-id&gt;-&lt;slug&gt;/]
+        P5_W --> P5_IDX[/index.md<br/>file map + Coverage Matrix +<br/>NFR Matrix + optimization report/]
+        P5_W --> P5_SCOPE[/&lt;domain&gt;/&lt;scope&gt;.md<br/>one file per domain×scope/]
+    end
+
+    P5 --> U
 ```
 
-**Phase 1** starts with `source-curator`, which ingests raw heterogeneous inputs (PDFs, OpenAPI, wireframes, code, compliance docs) and emits **AI-optimized Markdown files organized by domain** (functional / technical / ui-ux / non-functional) plus a routing manifest. Only the analyst lenses that have material to analyze are then dispatched in parallel. Conflicts between sources halt the process and surface to the user. After conflict resolution, `skill-author` writes **one Claude Code skill per non-empty domain** into `<project>/.claude/skills/<feature-slug>-<domain>/SKILL.md`. Each skill captures the system feature's knowledge (entities, contracts, business rules, NFRs) plus the Atomic Testable Units derived from it — making feature documentation a reusable artifact for the whole team. Re-runs **merge** into existing skills (the `## Manual Notes` section is always preserved).
+**Phase 1** starts with `source-curator`, which ingests raw heterogeneous inputs (PDFs, OpenAPI, wireframes, code, compliance docs) and emits **AI-optimized Markdown files organized by domain** (functional / technical / ui-ux / non-functional) plus a routing manifest. Only the analyst lenses that have material to analyze are then dispatched in parallel. Conflicts between sources halt the process and surface to the user. After conflict resolution, `skill-author` writes **one Claude Code skill per non-empty lens** (functional / technical / ui / nfr / glossary) into `<project>/.claude/skills/<lens>-<feature-slug>/SKILL.md`. Each skill embeds the feature inside a 6-layer tree (System → Business Domain → Sub-Domain → Feature → User Story → Use Case) and decomposes Use Cases into atomic **Behavioral Skills** (Trigger / Logic Gate / State Mutation / Response Protocol / Sub-domain Refs / Source) — making feature documentation a reusable artifact for the whole team. Re-runs **merge** into existing skills (the `## Manual Notes` section is always preserved).
 
 **Phase 2** dispatches only the testing strategies you select:
 
@@ -97,9 +141,16 @@ The orchestrator will not proceed until you answer:
 
 The plugin produces **two artifacts** per run:
 
-### 1. Per-domain Claude Code skills
+### 1. Per-lens Claude Code skills
 
-Written to `<project>/.claude/skills/<feature-slug>-{functional|technical|ui|nfr}/SKILL.md`. Each skill captures the system feature's knowledge from one analytical lens — entities, contracts, business rules, dependencies, NFRs — plus the Atomic Testable Units derived from it. These skills are reusable feature documentation for anyone working on the feature, and are also the input contract for Phase 2. Re-running on the same feature merges into the existing skills; the `## Manual Notes` section is always preserved.
+Written to `<project>/.claude/skills/{functional|technical|ui|nfr|glossary}-<feature-slug>/SKILL.md` (folder is **lens-first** so all skills for a given perspective sort together). Each skill captures the system feature's knowledge from one analytical lens — entities, contracts, business rules, dependencies, NFRs — embedded inside a **6-layer tree** (System → Business Domain → Sub-Domain → Feature → User Story → Use Case) rendered as the `## Tree Location` breadcrumb. Use Cases are decomposed into atomic **Behavioral Skills** with five fields: `Trigger / Logic Gate / State Mutation / Response Protocol / Sub-domain Refs / Source` (one Behavioral Skill per acceptance criterion, IDs are stable: `{LENS}-{story_id}-{ac_id}`).
+
+Each lens skill also includes:
+- a `### Diagrams` section with simple Mermaid diagrams (`flowchart` / `stateDiagram-v2` / `sequenceDiagram` / `erDiagram`) whenever a flow, lifecycle, or dependency graph is non-trivial;
+- a `### Interfaces (cross-sub-domain exposure)` section listing what this sub-domain exposes to others — referenced via the Behavioral Skill's `Sub-domain Refs` field;
+- the `glossary` lens skill (one per feature when acronyms / jargon / business expressions appear) preserves each term's specification name **verbatim** and adds an English translation only when needed.
+
+These skills are reusable feature documentation for anyone working on the feature, and are also the input contract for Phase 2. Re-running on the same feature **merges** into the existing skills; the `## Manual Notes` section is always preserved across re-runs.
 
 ### 2. The test scenario suite — split across multiple files
 
@@ -191,14 +242,14 @@ See the [`tag-system`](skills/tag-system/) skill for full rules.
 | `technical-architect` | Phase 1 — APIs, schemas, data models, dependencies |
 | `ui-ux-specialist` | Phase 1 — navigation, screens, validations, A11y |
 | `quality-compliance-agent` | Phase 1 — Security, Performance, Compliance, Reliability |
-| `skill-author` | Phase 1 — writes one Claude Code skill per non-empty domain into `<project>/.claude/skills/`. Idempotent: merges into existing skills, preserves `## Manual Notes`. |
+| `skill-author` | Phase 1 — writes one Claude Code skill per non-empty lens (functional / technical / ui / nfr / glossary) into `<project>/.claude/skills/<lens>-<feature-slug>/`. Embeds the 6-layer System → Business Domain → Sub-Domain → Feature → User Story → Use Case tree and decomposes Use Cases into atomic Behavioral Skills. Idempotent: merges into existing skills, preserves `## Manual Notes`. Surfaces non-blocking boundary warnings when a Behavioral Skill references a sub-domain that hasn't declared the referenced state in its `### Interfaces` section. |
 | `component-strategy` | Phase 2 — single-unit isolation tests |
 | `integration-strategy` | Phase 2 — cross-boundary interaction tests |
 | `edge-case-strategy` | Phase 2 — unusual/adversarial conditions |
 | `limit-case-strategy` | Phase 2 — boundary values |
 | `cross-case-strategy` | Phase 2 — combinatorial/pairwise tests |
 | `scenario-designer` | Phase 2 — converts strategy outputs into TC Markdown |
-| `scenario-coverage-checker` | Phase 4 — PASS/FAIL/PARTIAL audit; reads ATUs and ACs from the per-domain SKILL.md files emitted by `skill-author` |
+| `scenario-coverage-checker` | Phase 4 — PASS/FAIL/PARTIAL audit; reads Behavioral Skills and ACs from the per-lens SKILL.md files emitted by `skill-author` |
 
 ### Skills
 

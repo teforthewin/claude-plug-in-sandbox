@@ -212,7 +212,7 @@ Before returning scenarios, verify:
 - [ ] **Acceptance criteria** are tabular and measurable, with assertion type per row
 - [ ] Positive and negative paths covered
 - [ ] Edge cases documented
-- [ ] NFR ATUs from input are represented (security, performance, compliance, accessibility)
+- [ ] NFR Behavioral Skills from input are represented (security, performance, compliance, accessibility)
 
 ---
 

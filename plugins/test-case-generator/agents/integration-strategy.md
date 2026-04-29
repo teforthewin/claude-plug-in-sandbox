@@ -37,7 +37,7 @@ You are the **Integration Testing Strategy Sub-Agent**. You apply an **integrati
 
 You receive from the orchestrator:
 
-1. **Skill Files** — a list of `<project>/.claude/skills/<feature-slug>-<domain>/SKILL.md` paths (one per non-empty domain) emitted by `skill-author`. Read them with the `Read` tool. The `## Atomic Testable Units` section in each is your primary input; the `## Feature Knowledge` section is your source for cross-component data flow — pay special attention to `### Dependencies` and `### Contracts / Interfaces`, especially in the `technical` domain skill.
+1. **Skill Files** — a list of `<project>/.claude/skills/<lens>-<feature-slug>/SKILL.md` paths (one per non-empty lens) emitted by `skill-author`. Read them with the `Read` tool. Your primary inputs are: (a) the `## Behavioral Skills` section — each Behavioral Skill carries `Trigger / Logic Gate / State Mutation / Response Protocol / Sub-domain Refs / Source`, and the `Sub-domain Refs` field is your **first-class signal for cross-boundary integration tests** (it lists every entity/event from another sub-domain that this skill touches); (b) the `## Feature Knowledge → ### Dependencies`, `### Contracts / Interfaces`, and `### Interfaces (cross-sub-domain exposure)` sections — pay special attention to the `technical-{feature-slug}` skill. Use the `## Tree Location` breadcrumb to identify cross-boundary pairs (different sub-domains). See `agents/skill-author.md` §9 for the full ATU → Behavioral Skill field mapping.
 2. **Channel(s)** — API / Web / Mobile / Hybrid
 3. **Already Covered list** — scenario IDs and test goals from existing test suites
 4. **Coverage scope** — Happy path only / Happy + errors / Full coverage

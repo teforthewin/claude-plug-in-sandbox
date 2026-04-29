@@ -37,7 +37,7 @@ You are the **Edge Case Testing Strategy Sub-Agent**. You apply an **adversarial
 
 You receive from the orchestrator:
 
-1. **Skill Files** — a list of `<project>/.claude/skills/<feature-slug>-<domain>/SKILL.md` paths (one per non-empty domain) emitted by `skill-author`. Read them with the `Read` tool. The `## Atomic Testable Units` section in each is your primary input; the `## Feature Knowledge` section provides Entities, Contracts, Business Rules, State Machine, Dependencies, and Error Conditions you can use to derive edge cases.
+1. **Skill Files** — a list of `<project>/.claude/skills/<lens>-<feature-slug>/SKILL.md` paths (one per non-empty lens) emitted by `skill-author`. Read them with the `Read` tool. Your primary input is the `## Behavioral Skills` section (organized as `### User Story → #### Use Case → ##### {LENS}-{story_id}-{ac_id}`, each carrying `Trigger / Logic Gate / State Mutation / Response Protocol / Sub-domain Refs / Source`). Use Cases tagged as `error path` are direct edge-case fodder. The `## Feature Knowledge` section provides Entities, Contracts, Business Rules, State Machine, Dependencies, and Error Conditions you can use to derive additional edge cases. See `agents/skill-author.md` §9 for the full ATU → Behavioral Skill field mapping.
 2. **Channel(s)** — API / Web / Mobile / Hybrid
 3. **Already Covered list** — scenario IDs and test goals from existing test suites
 4. **Coverage scope** — Happy path only / Happy + errors / Full coverage

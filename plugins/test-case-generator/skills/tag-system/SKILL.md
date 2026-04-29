@@ -40,9 +40,9 @@ Custom per team — align with service or capability boundaries.
 
 **Functional domains** (examples): `authentication`, `payments`, `user-management`, `inventory`, `notifications`, `reporting`, `orders`, `checkout`
 
-**Non-Functional domains** (mandatory when NFR ATUs exist): `security`, `performance`, `compliance`, `accessibility`
+**Non-Functional domains** (mandatory when NFR Behavioral Skills exist): `security`, `performance`, `compliance`, `accessibility`
 
-> Use the non-functional domain tags for TCs that directly validate NFR ATUs (security rules, SLA thresholds, GDPR constraints, WCAG requirements). These are compliance-checked by the scenario-coverage-checker.
+> Use the non-functional domain tags for TCs that directly validate NFR Behavioral Skills (security rules, SLA thresholds, GDPR constraints, WCAG requirements). These are compliance-checked by the scenario-coverage-checker.
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: scenario-coverage-checker
-description: "Validates that generated test cases cover all acceptance criteria AND all Non-Functional ATUs (Security, Performance, Compliance, Accessibility) drawn from the per-domain SKILL.md files emitted by skill-author. Used by the test-case-generator in Phase 4 (Coverage Validation). Produces a PASS/FAIL/PARTIAL checklist with dimensional alignment across all skill files. Read-only — does not generate or modify test cases."
+description: "Validates that generated test cases cover all acceptance criteria AND all Non-Functional Behavioral Skills (Security, Performance, Compliance, Accessibility) drawn from the per-lens SKILL.md files emitted by skill-author. Used by the test-case-generator in Phase 4 (Coverage Validation). Produces a PASS/FAIL/PARTIAL checklist with dimensional alignment across all skill files. Read-only — does not generate or modify test cases."
 tools:
   - Read
   - Glob
@@ -9,7 +9,7 @@ tools:
 
 # Agent: Scenario Coverage Checker
 
-**Role**: Verify that generated test cases cover all acceptance criteria and all Non-Functional ATUs found across the per-domain SKILL.md files emitted by `skill-author`  
+**Role**: Verify that generated test cases cover all acceptance criteria and all Non-Functional Behavioral Skills found across the per-lens SKILL.md files emitted by `skill-author`  
 **Activation**: Called by `test-case-generator` in Phase 4 — do not invoke directly
 
 ---
@@ -18,7 +18,7 @@ tools:
 
 ### CAN Do
 - Verify that each acceptance criterion from the source material is covered by at least one TC
-- Verify that each NFR ATU (Security, Performance, Compliance, Accessibility) is covered by at least one TC
+- Verify that each NFR Behavioral Skill (Security, Performance, Compliance, Accessibility) is covered by at least one TC
 - Check that every TC has all 4 mandatory tag categories (severity + category + domain + type); additional labels are ignored by compliance checks
 - Verify no TC contains implementation details (code, selectors, endpoints)
 - Verify that domain grouping is consistent with the business taxonomy provided
@@ -27,7 +27,7 @@ tools:
 ### CANNOT Do
 - Generate or modify test cases
 - Make architectural decisions
-- Mark something as FAIL without citing the specific criterion, ATU, or rule violated
+- Mark something as FAIL without citing the specific criterion, Behavioral Skill ID, or rule violated
 
 ---
 
@@ -35,7 +35,7 @@ tools:
 
 You receive from the test-case-generator:
 
-1. **Skill File Paths** — a list of `<project>/.claude/skills/<feature-slug>-<domain>/SKILL.md` paths emitted by `skill-author`. Read each with the `Read` tool. The union of their `## Atomic Testable Units` sections is the full ATU repository (4 domains: Functional, Technical, UI, Non-Functional). The union of their `## Acceptance Criteria` sections is the AC list. NFR ATUs live in the `nfr` domain skill.
+1. **Skill File Paths** — a list of `<project>/.claude/skills/<lens>-<feature-slug>/SKILL.md` paths emitted by `skill-author`. Read each with the `Read` tool. The union of their `## Behavioral Skills` sections is the full Behavioral Skill repository (4 lenses: Functional, Technical, UI, Non-Functional — Behavioral Skills are nested under `### User Story → #### Use Case → ##### {LENS}-{story_id}-{ac_id}` with fields `Trigger / Logic Gate / State Mutation / Response Protocol / Sub-domain Refs / Source`). The union of their `## Acceptance Criteria` sections is the AC list. NFR Behavioral Skills live in the `nfr-{feature-slug}` skill. A glossary skill (`glossary-{feature-slug}`) may also be present — it is **not** subject to coverage checks. See `agents/skill-author.md` §9 for the full ATU → Behavioral Skill field mapping.
 2. **Generated TC document** — the Markdown file produced by Phase 2/3
 3. **Selected testing levels** — which strategies were applied
 
@@ -52,7 +52,7 @@ AC-2: {criterion text}
 ...
 ```
 
-If no explicit ACs were provided (e.g., source was code or a technical spec), derive ACs from the Business Rules and Operations ATUs across the skill files.
+If no explicit ACs were provided (e.g., source was code or a technical spec), derive ACs from the Business Rules in `## Feature Knowledge` and the `Logic Gate` field of each Behavioral Skill across the skill files.
 
 ### Step 2 — Map TCs to ACs
 
@@ -61,22 +61,22 @@ For each AC, find at least one TC that validates it:
 - A TC "covers" an AC if its business outcome aligns with that AC's intent
 - Partial coverage = TC exists but only covers the happy path (missing error/edge cases)
 
-### Step 3 — Check NFR ATU Coverage (MANDATORY)
+### Step 3 — Check NFR Behavioral Skill Coverage (MANDATORY)
 
-For each `NFR-{N}` ATU found in the `nfr` domain skill (or any other skill that contains NFR-prefixed ATUs), find at least one TC that validates it:
+For each `NFR-{story_id}-{ac_id}` Behavioral Skill found in the `nfr-{feature-slug}` skill (or any other skill that contains NFR-prefixed Behavioral Skills), find at least one TC that validates it:
 
 ```
-NFR-1 (Security — token expiry): covered by TC-{id}-0XX? [YES/NO]
-NFR-2 (Performance — latency ≤ 200ms): covered by TC-{id}-0XX? [YES/NO]
-NFR-3 (Compliance — PII masking): covered by TC-{id}-0XX? [YES/NO]
-NFR-4 (Accessibility — WCAG AA keyboard nav): covered by TC-{id}-0XX? [YES/NO]
+NFR-US01-AC01 (Security — token expiry): covered by TC-{id}-0XX? [YES/NO]
+NFR-US01-AC02 (Performance — latency ≤ 200ms): covered by TC-{id}-0XX? [YES/NO]
+NFR-US02-AC01 (Compliance — PII masking): covered by TC-{id}-0XX? [YES/NO]
+NFR-US03-AC01 (Accessibility — WCAG AA keyboard nav): covered by TC-{id}-0XX? [YES/NO]
 ```
 
-A TC "covers" an NFR ATU if:
+A TC "covers" an NFR Behavioral Skill if:
 - Its domain tag matches the NFR sub-domain (`security`, `performance`, `compliance`, `accessibility`)
-- Its Steps and Assert address the specific constraint described in the ATU's Expected Outcome
+- Its Steps and Assert address the constraint expressed by the Behavioral Skill's `Logic Gate` (the assertion), `State Mutation` (the data effect), and `Response Protocol` (the visible output) — all three together describe what the test must validate.
 
-**An NFR ATU with no TC is always a FAIL** — NFR coverage is not optional.
+**An NFR Behavioral Skill with no TC is always a FAIL** — NFR coverage is not optional.
 
 ### Step 4 — Check Tag Completeness
 
@@ -123,14 +123,14 @@ For each selected testing level, verify at least 1 TC exists with that type tag:
 
 ---
 
-### NFR ATU Coverage (MANDATORY)
+### NFR Behavioral Skill Coverage (MANDATORY)
 
-| ATU ID | Sub-domain | Description | Status | Covered By |
-|--------|-----------|-------------|--------|------------|
-| NFR-1 | Security | {description} | ✅ PASS | TC-{id}-0XX |
-| NFR-2 | Performance | {description} | ❌ FAIL | No TC covers this ATU |
-| NFR-3 | Compliance | {description} | ✅ PASS | TC-{id}-0XX |
-| NFR-4 | Accessibility | {description} | ⚠️ PARTIAL | TC-{id}-0XX (incomplete assertions) |
+| Behavioral Skill ID | Sub-domain | Description | Status | Covered By |
+|---------------------|-----------|-------------|--------|------------|
+| NFR-US01-AC01 | Security | {description} | ✅ PASS | TC-{id}-0XX |
+| NFR-US01-AC02 | Performance | {description} | ❌ FAIL | No TC covers this Behavioral Skill |
+| NFR-US02-AC01 | Compliance | {description} | ✅ PASS | TC-{id}-0XX |
+| NFR-US03-AC01 | Accessibility | {description} | ⚠️ PARTIAL | TC-{id}-0XX (incomplete assertions) |
 
 ---
 
@@ -155,7 +155,7 @@ For each selected testing level, verify at least 1 TC exists with that type tag:
 
 ### NFR Dimension Summary
 
-| Sub-domain | ATUs | Covered | Missing |
+| Sub-domain | Behavioral Skills | Covered | Missing |
 |-----------|------|---------|---------|
 | Security | {N} | {N} | {N} |
 | Performance | {N} | {N} | {N} |
@@ -166,7 +166,7 @@ For each selected testing level, verify at least 1 TC exists with that type tag:
 
 ### Next Steps
 
-1. {For each FAIL or PARTIAL: specific action required — cite the AC ID or NFR ATU ID}
+1. {For each FAIL or PARTIAL: specific action required — cite the AC ID or NFR Behavioral Skill ID}
 2. ...
 ```
 
@@ -183,9 +183,9 @@ If the report contains FAILs or PARTIALs, return the full report to the `test-ca
 ```
 ⚠️ NFR COVERAGE GAPS — ESCALATING
 
-The following NFR ATUs have no test coverage:
+The following NFR Behavioral Skills have no test coverage:
 - NFR-{N} ({sub-domain}): {description}
-  Expected Outcome: {from ATU}
+  Logic Gate / State Mutation / Response Protocol: {from the Behavioral Skill}
 
 The orchestrator must dispatch sub-agents to generate NFR scenarios before Phase 5.
 ```
@@ -195,7 +195,7 @@ If all checks PASS, return:
 ✅ COVERAGE VERIFIED — FULL DIMENSIONAL ALIGNMENT
 
 All {N} acceptance criteria covered.
-All {N} NFR ATUs covered:
+All {N} NFR Behavioral Skills covered:
   Security:      {N}/{N}
   Performance:   {N}/{N}
   Compliance:    {N}/{N}

@@ -1,6 +1,6 @@
 ---
 name: test-case-generator
-description: "Multi-strategy test case generator. Converts business requirements, technical specifications, UI docs, source code, and compliance/legal documents into domain-organized test scenario documents. Phase 1 starts with a source-curator sub-agent that ingests raw heterogeneous inputs and emits AI-optimized Markdown files organized by domain plus a routing manifest, then dispatches only the analyst sub-agents that have material to analyze (functional-analyst, technical-architect, ui-ux-specialist, quality-compliance-agent), then a skill-author writes one Claude Code skill per domain into the user's project under .claude/skills/<feature-slug>-<domain>/SKILL.md (idempotent: existing skills are merged, not overwritten). Phase 2 reads those skill files and dispatches 5 parallel testing strategies: Component, Integration, Edge Case, Limit Case, and Cross Case. Optimizes coverage by merging redundant tests. Supports append-to-existing mode. Orchestrates sub-agents (source-curator, functional-analyst, technical-architect, ui-ux-specialist, quality-compliance-agent, skill-author, component-strategy, integration-strategy, edge-case-strategy, limit-case-strategy, cross-case-strategy) → scenario-coverage-checker to produce validated, tagged, domain-grouped Markdown scenario documents."
+description: "Multi-strategy test case generator. Converts business requirements, technical specifications, UI docs, source code, and compliance/legal documents into domain-organized test scenario documents. Phase 1 starts with a source-curator sub-agent that ingests raw heterogeneous inputs and emits AI-optimized Markdown files organized by domain plus a routing manifest, then dispatches only the analyst sub-agents that have material to analyze (functional-analyst, technical-architect, ui-ux-specialist, quality-compliance-agent), then a skill-author writes one Claude Code skill per analytical lens (functional, technical, ui, nfr, glossary) into the user's project under .claude/skills/<lens>-<feature-slug>/SKILL.md (idempotent: existing skills are merged, not overwritten). Each emitted skill embeds the feature inside a 6-layer System → Business Domain → Sub-Domain → Feature → User Story → Use Case tree and decomposes Use Cases into atomic Behavioral Skills (Trigger / Logic Gate / State Mutation / Response Protocol). Phase 2 reads those skill files and dispatches 5 parallel testing strategies: Component, Integration, Edge Case, Limit Case, and Cross Case. Optimizes coverage by merging redundant tests. Supports append-to-existing mode. Orchestrates sub-agents (source-curator, functional-analyst, technical-architect, ui-ux-specialist, quality-compliance-agent, skill-author, component-strategy, integration-strategy, edge-case-strategy, limit-case-strategy, cross-case-strategy) → scenario-coverage-checker to produce validated, tagged, domain-grouped Markdown scenario documents."
 tools:
   - Read
   - Write
@@ -134,7 +134,7 @@ Ask these questions and **wait for answers before proceeding**:
 
 ## 4. Phase 1 — Multi-Dimensional Knowledge Extraction
 
-Phase 1 has three stages: **(1) curation** (a `source-curator` sub-agent transforms raw inputs into AI-optimized Markdown files organized by domain and emits a routing manifest), **(2) parallel analysis** (only the analyst lenses that have curated material are dispatched), **(3) conflict detection + skill authoring** — the `skill-author` sub-agent writes one Claude Code skill per non-empty domain into `<project>/.claude/skills/<feature-slug>-<domain>/SKILL.md`. These skills carry both the system feature knowledge and the Atomic Testable Units consumed by Phase 2.
+Phase 1 has three stages: **(1) curation** (a `source-curator` sub-agent transforms raw inputs into AI-optimized Markdown files organized by domain and emits a routing manifest), **(2) parallel analysis** (only the analyst lenses that have curated material are dispatched), **(3) conflict detection + skill authoring** — the `skill-author` sub-agent writes one Claude Code skill per non-empty lens into `<project>/.claude/skills/<lens>-<feature-slug>/SKILL.md`. These skills carry both the system feature knowledge (rendered as a 6-layer tree: System → Business Domain → Sub-Domain → Feature → User Story → Use Case) and the **Behavioral Skills** consumed by Phase 2 — atomic AC-level units with `Trigger / Logic Gate / State Mutation / Response Protocol / Source` fields. See `agents/skill-author.md` §9 for the full ATU → Behavioral Skill field mapping.
 
 ### 4.1 — Source Curation & Routing (delegated to `source-curator`)
 
@@ -212,22 +212,29 @@ Conflict 2: ...
 
 **Do not proceed until the user resolves all conflicts.** After resolution, re-dispatch any analyst whose input changed.
 
-### 4.4 — Skill Author Sub-Agent → Per-Domain Claude Code Skills
+### 4.4 — Skill Author Sub-Agent → Per-Lens Claude Code Skills
 
-After conflict resolution, delegate to the `skill-author` sub-agent. Pass it the four findings blocks plus the feature metadata. It writes **one Claude Code skill per non-empty domain** into the user's project under `.claude/skills/`, and returns a list of skill paths.
+After conflict resolution, delegate to the `skill-author` sub-agent. Pass it the four findings blocks plus the feature metadata, including the **6-layer tree** coordinates (system, business_domain, sub_domain) and the user-story / use-case structure extracted by `functional-analyst`. It writes **one Claude Code skill per non-empty lens** (functional / technical / ui / nfr / glossary) into the user's project under `.claude/skills/`, and returns a list of skill paths.
 
-These skills are **system feature documentation** (entities, contracts, business rules, NFRs) — not test artifacts. They are intended to be reusable across the team. The Atomic Testable Units inside each skill are the same schema as before; they let Phase 2 strategy sub-agents (and the coverage checker) work directly off the emitted skill files.
+These skills are **system feature documentation** (entities, contracts, business rules, NFRs) — not test artifacts. They are intended to be reusable across the team. Inside each lens skill, the `## Behavioral Skills` section decomposes Use Cases into atomic AC-level units with `Trigger / Logic Gate / State Mutation / Response Protocol / Source` fields, plus a `Sub-domain Refs` field for cross-boundary tracking. Phase 2 strategy sub-agents (and the coverage checker) work directly off these.
 
 ```
 Agent(
   subagent_type: "skill-author",
   prompt: """
-    Write one Claude Code skill per non-empty domain for this feature.
+    Write one Claude Code skill per non-empty lens for this feature.
 
-    FEATURE_SLUG: {feature_slug}        # kebab-case, e.g. te-162-order-creation
-    FEATURE_TITLE: {feature_title}
-    SYSTEM: {system}
-    PROJECT_ROOT: {absolute_path_to_user_project}
+    --- 6-layer tree coordinates ---
+    SYSTEM:           {system}                    # Layer 1 — from Phase 0 Q6
+    BUSINESS_DOMAIN:  {business_domain}           # Layer 2 — from Phase 0 Q5
+    SUB_DOMAIN:       {sub_domain}                # Layer 3 — extracted by functional-analyst, or "[INCOMPLETE SPEC]"
+    FEATURE_SLUG:     {feature_slug}              # Layer 4 (slug) — kebab-case, e.g. te-162-order-creation
+    FEATURE_TITLE:    {feature_title}             # Layer 4 (title)
+
+    USER_STORIES:     {user_stories}              # Layer 5 — list of {id, persona, action, value}
+    USE_CASES:        {use_cases}                 # Layer 6 — list of {user_story_id, name, path_type, acceptance_criteria}
+
+    PROJECT_ROOT:     {absolute_path_to_user_project}
 
     FUNCTIONAL FINDINGS:
     {functional_findings}
@@ -241,16 +248,19 @@ Agent(
     NON-FUNCTIONAL FINDINGS:
     {nfr_findings}
 
-    ACCEPTANCE CRITERIA (verbatim):
+    ACCEPTANCE CRITERIA (verbatim, with ids):
     {acceptance_criteria}
 
-    Follow the format, idempotency rule, and self-check defined in your agent file.
+    Follow the format, idempotency rule, synthesis rules, and self-check defined in your agent file.
     Idempotency: if a target SKILL.md already exists, MERGE — never overwrite the `## Manual Notes` section.
+    Emit the glossary skill whenever ≥ 1 acronym / jargon term / business expression appears in the inputs.
   """
 )
 ```
 
-The author returns a handoff listing every emitted skill path (created or merged) and per-domain ATU counts. **Capture this list of skill paths**, you must forward it to every Phase 2 strategy sub-agent and to the coverage checker.
+If `sub_domain` is not stated in the source material, pass `[INCOMPLETE SPEC]` and the skill-author will surface the gap in its handoff. Likewise for missing `user_stories` or `use_cases`.
+
+The author returns a handoff listing every emitted skill path (created or merged), per-lens **Behavioral Skill** counts, glossary term count, and any boundary warnings or incomplete-spec flags. **Capture this list of skill paths**, you must forward it to every Phase 2 strategy sub-agent and to the coverage checker.
 
 ### 4.5 — Append Mode Pre-Processing
 
@@ -266,15 +276,15 @@ If the user selected append mode:
 
 ## 5. Phase 2 — Skill-Based Strategy Dispatch
 
-Launch **only the selected testing levels** as parallel sub-agents using the `Agent` tool. Each sub-agent invocation receives the **list of SKILL.md file paths** emitted by `skill-author` (one per non-empty domain), the channel, and the already-covered list. The strategy sub-agent reads the SKILL.md files itself and parses the `## Atomic Testable Units` section.
+Launch **only the selected testing levels** as parallel sub-agents using the `Agent` tool. Each sub-agent invocation receives the **list of SKILL.md file paths** emitted by `skill-author` (one per non-empty lens — folder name `<lens>-<feature-slug>/`), the channel, and the already-covered list. The strategy sub-agent reads the SKILL.md files itself and parses the `## Behavioral Skills` section (organized as User Story → Use Case → individual Behavioral Skill). Use Cases group ACs by path type (happy / alternative / error). Use the `## Tree Location` breadcrumb to scope cross-feature reasoning, and use each Behavioral Skill's `Sub-domain Refs` field to identify cross-boundary interactions.
 
 ### 5.1 — Sub-Agent Mapping
 
 | Testing Level | Sub-Agent | Type Tag | Focus |
 |--------------|-----------|----------|-------|
-| Component | `component-strategy` | `component-test` | Individual ATUs in isolation |
-| Integration | `integration-strategy` | `integration-test` | ATU interactions across boundaries |
-| Edge cases | `edge-case-strategy` | `edge-case` | Unusual/rare conditions from all domains |
+| Component | `component-strategy` | `component-test` | Individual Behavioral Skills in isolation |
+| Integration | `integration-strategy` | `integration-test` | Behavioral Skill interactions across boundaries (driven by `Sub-domain Refs` and `### Interfaces`) |
+| Edge cases | `edge-case-strategy` | `edge-case` | Unusual/rare conditions from all lenses |
 | Limit cases | `limit-case-strategy` | `limit-case` | Boundary values — including NFR thresholds |
 | Cross cases | `cross-case-strategy` | `cross-case` | Parameter combinations — roles, states, channels |
 
@@ -290,8 +300,10 @@ Agent(
 
     Read and follow the full instructions in: .claude/agents/{strategy-agent-name}.md
 
-    SKILL FILES (one per non-empty domain — read the `## Atomic Testable Units`
-    and `## Feature Knowledge` sections from each):
+    SKILL FILES (one per non-empty lens — folder pattern `<lens>-<feature-slug>/`.
+    Read the `## Behavioral Skills` and `## Feature Knowledge` sections from each.
+    Behavioral Skills are nested under `### User Story → #### Use Case → ##### {LENS}-{story_id}-{ac_id}`
+    with fields: Trigger / Logic Gate / State Mutation / Response Protocol / Sub-domain Refs / Source.):
     {list_of_skill_paths_from_skill_author}
 
     CHANNEL: {channel}
@@ -367,8 +379,8 @@ Additionally, verify the NFR dimension has coverage:
 ```
 ✅ Security:       {N} scenarios
 ✅ Performance:    {N} scenarios
-✅ Compliance:     {N} scenarios (if NFR ATUs existed)
-✅ Accessibility:  {N} scenarios (if UI/NFR ATUs existed)
+✅ Compliance:     {N} scenarios (if NFR Behavioral Skills existed)
+✅ Accessibility:  {N} scenarios (if UI/NFR Behavioral Skills existed)
 ```
 
 If any selected level has 0 scenarios after merge, return to Phase 2 to re-run that sub-agent.
@@ -406,13 +418,13 @@ NFR coverage:
 **Delegate to sub-agent**: `scenario-coverage-checker`
 
 Pass:
-1. The list of SKILL.md paths emitted by `skill-author` (the checker reads ATUs and ACs from these)
+1. The list of SKILL.md paths emitted by `skill-author` (the checker reads Behavioral Skills and ACs from these — section `## Behavioral Skills`, with NFR Behavioral Skills living in the `nfr-{feature-slug}` skill)
 2. The generated TC document
 3. The selected testing levels
 
 The checker confirms:
 - [ ] All acceptance criteria from source material are covered by at least one TC
-- [ ] **All NFR ATUs (Security, Performance, Compliance, Accessibility) are covered** — this is mandatory, not optional
+- [ ] **All NFR Behavioral Skills (Security, Performance, Compliance, Accessibility) are covered** — this is mandatory, not optional
 - [ ] Every TC has all 4 mandatory tag categories (severity + category + domain + type); additional labels are preserved as-is
 - [ ] No TC is implementation-specific (no code, selectors, or endpoints)
 - [ ] Domain grouping is consistent with business taxonomy
@@ -531,9 +543,9 @@ date: {YYYY-MM-DD}
 
 ## NFR Coverage Matrix
 
-| ATU ID | Sub-domain | Covered By TC | File | Status |
-|--------|-----------|---------------|------|--------|
-| NFR-1  | Security  | TC-{id}-0XX   | security/edge-cases.md | ✅ |
+| Behavioral Skill ID | Sub-domain | Covered By TC | File | Status |
+|---------------------|-----------|---------------|------|--------|
+| NFR-{story_id}-{ac_id} | Security | TC-{id}-0XX | security/edge-cases.md | ✅ |
 
 ## Optimization Report
 
@@ -548,7 +560,7 @@ Reduction: {N}%
 - [ ] Files split by domain × scope; empty scope files are not emitted
 - [ ] No implementation details in any TC (no code, selectors, or endpoints)
 - [ ] Coverage matrix in index.md is complete and links to the right files
-- [ ] NFR coverage matrix present — all NFR ATUs accounted for
+- [ ] NFR coverage matrix present — all NFR Behavioral Skills accounted for
 ```
 
 #### Scope file — `{domain}/{scope}.md`
@@ -646,7 +658,7 @@ When extending an existing run directory:
 - [ ] Every TC uses the 5-field template: Title, Test description, Inputs, Steps, Acceptance criteria
 - [ ] All 4 mandatory tag categories on every TC
 - [ ] Coverage Matrix in `index.md` is complete; every row's `File` column resolves to an actual file
-- [ ] NFR Coverage Matrix is present in `index.md` — all NFR ATUs are accounted for
+- [ ] NFR Coverage Matrix is present in `index.md` — all NFR Behavioral Skills are accounted for
 - [ ] Optimization report shows merge results
 
 **IF FILES ARE NOT WRITTEN**: do not return — write them first.
@@ -675,10 +687,10 @@ Strategy breakdown:
   Multi-strategy:   {N} TCs (merged)
 
 NFR Coverage:
-  Security:         {N} TCs (from {N} NFR ATUs)
-  Performance:      {N} TCs (from {N} NFR ATUs)
-  Compliance:       {N} TCs (from {N} NFR ATUs)
-  Accessibility:    {N} TCs (from {N} NFR ATUs)
+  Security:         {N} TCs (from {N} NFR Behavioral Skills)
+  Performance:      {N} TCs (from {N} NFR Behavioral Skills)
+  Compliance:       {N} TCs (from {N} NFR Behavioral Skills)
+  Accessibility:    {N} TCs (from {N} NFR Behavioral Skills)
 ```
 
 ---
@@ -693,7 +705,7 @@ Before delivering:
   - [x] No selected level was lost during merge/optimization
 
 ✅ NFR Coverage (MANDATORY)
-  - [x] All NFR ATUs (Security/Performance/Compliance/Accessibility) are represented in TCs
+  - [x] All NFR Behavioral Skills (Security/Performance/Compliance/Accessibility) are represented in TCs
   - [x] NFR Coverage Matrix is present and complete
 
 ✅ Hierarchy & Organization
@@ -757,8 +769,8 @@ Returning to sub-agent(s) to fill the gaps.
 **NFR gap found:**
 ```
 ⚠️ NFR COVERAGE GAP
-The following Non-Functional ATUs have no test coverage:
-- NFR-{N} ({sub-domain}): {description}
+The following Non-Functional Behavioral Skills have no test coverage:
+- NFR-{story_id}-{ac_id} ({sub-domain}): {description}
 Returning to sub-agent(s) to generate NFR scenarios.
 ```
 

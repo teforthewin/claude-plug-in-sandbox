@@ -37,7 +37,7 @@ You are the **Cross Case Testing Strategy Sub-Agent**. You apply a **combinatori
 
 You receive from the orchestrator:
 
-1. **Skill Files** — a list of `<project>/.claude/skills/<feature-slug>-<domain>/SKILL.md` paths (one per non-empty domain) emitted by `skill-author`. Read them with the `Read` tool. Treat the union of their `## Atomic Testable Units` and `## Feature Knowledge` sections as the behavioral surface (Entities, Operations, State Machine, Business Rules, Data Constraints, Dependencies, Error Conditions are distributed across the per-domain skills).
+1. **Skill Files** — a list of `<project>/.claude/skills/<lens>-<feature-slug>/SKILL.md` paths (one per non-empty lens) emitted by `skill-author`. Read them with the `Read` tool. Treat the union of their `## Behavioral Skills` and `## Feature Knowledge` sections as the behavioral surface (Entities, Operations, State Machine, Business Rules, Data Constraints, Dependencies, Error Conditions are distributed across the per-lens skills). Behavioral Skills are organized as `### User Story → #### Use Case → ##### {LENS}-{story_id}-{ac_id}`, each carrying `Trigger / Logic Gate / State Mutation / Response Protocol / Sub-domain Refs / Source`. The `Sub-domain Refs` field is a strong signal for which dimensions naturally combine across boundaries. See `agents/skill-author.md` §9 for the full ATU → Behavioral Skill field mapping.
 2. **Channel(s)** — API / Web / Mobile / Hybrid
 3. **Already Covered list** — scenario IDs and test goals from existing test suites
 4. **Coverage scope** — Happy path only / Happy + errors / Full coverage
@@ -46,7 +46,7 @@ You receive from the orchestrator:
 
 ## 3. Dimension Extraction
 
-Before generating scenarios, extract the key dimensions from the union of the skill files' `## Feature Knowledge` and `## Atomic Testable Units` sections:
+Before generating scenarios, extract the key dimensions from the union of the skill files' `## Feature Knowledge` and `## Behavioral Skills` sections:
 
 ### 3.1 — Standard Dimensions
 
