@@ -1,15 +1,15 @@
 ---
 name: tag-system
-description: Defines the mandatory 4-category tag system (severity, category, domain, type) with assignment rules and examples. Use when writing or reviewing test cases to ensure every TC carries all required tag categories.
+description: Defines the mandatory 4-category tag system (severity, category, domain, type) plus optional extensible labels for filtering. Use when writing or reviewing test cases to ensure every TC carries all required tag categories and any relevant additional labels.
 ---
 
 # Skill: Tag System
 
-## Rule: Every Test Case MUST Carry All 4 Tag Categories
+## Rule: Every Test Case MUST Carry All 4 Mandatory Tag Categories
 
-Missing any tag category is a **compliance violation**.
+Missing any mandatory tag category is a **compliance violation**. Beyond the 4 mandatory categories, any number of additional `label:value` tags may be added freely — they are never a compliance violation.
 
-> **Clarification on type tags:** the *type category* is mandatory — every test case must include exactly one type tag reflecting the testing strategy that produced it. The default when no other strategy applies is `regression`.
+> **Clarification on type tags:** the *type category* is mandatory — every test case must include at least one type tag reflecting the testing strategy that produced it. When multiple strategies apply, include all relevant type tags (comma-separated). Choose from the five defined type tags below.
 
 ---
 
@@ -38,11 +38,15 @@ Missing any tag category is a **compliance violation**.
 
 Custom per team — align with service or capability boundaries.
 
-Examples: `authentication`, `payments`, `user-management`, `inventory`, `notifications`, `reporting`, `orders`, `checkout`
+**Functional domains** (examples): `authentication`, `payments`, `user-management`, `inventory`, `notifications`, `reporting`, `orders`, `checkout`
+
+**Non-Functional domains** (mandatory when NFR ATUs exist): `security`, `performance`, `compliance`, `accessibility`
+
+> Use the non-functional domain tags for TCs that directly validate NFR ATUs (security rules, SLA thresholds, GDPR constraints, WCAG requirements). These are compliance-checked by the scenario-coverage-checker.
 
 ---
 
-## Type Tags (mandatory — exactly one per TC)
+## Type Tags (mandatory — at least one per TC, comma-separated if multiple)
 
 Reflects the testing strategy that produced the test case:
 
@@ -56,6 +60,27 @@ Reflects the testing strategy that produced the test case:
 
 When a TC was produced by merging multiple strategies, include all applicable type tags:
 `type:limit-case,cross-case`
+
+---
+
+## Additional Labels (Optional — Extensible)
+
+Beyond the 4 mandatory categories, any number of `label:value` tags may be appended for filtering, traceability, and tooling integration. This list is open-ended and evolves with team needs — add labels as requirements emerge without modifying compliance rules.
+
+| Label | Example values | Purpose |
+|-------|---------------|---------|
+| `feature` | `feature:dark-mode` | Product area or feature flag |
+| `team` | `team:platform` | Owning squad |
+| `sprint` | `sprint:42` | Iteration reference |
+| `jira` | `jira:PROJ-123` | Ticket traceability |
+| `automation` | `automation:automated`, `automation:manual` | Automation status |
+| `persona` | `persona:admin`, `persona:guest` | User role under test |
+| `data-sensitivity` | `data-sensitivity:pii` | Data classification |
+
+**Format rules for additional labels:**
+- Use `label:value` with kebab-case for both sides
+- Any number of additional labels are allowed per TC
+- Order: mandatory categories first, additional labels after
 
 ---
 
@@ -73,11 +98,16 @@ When a TC was produced by merging multiple strategies, include all applicable ty
 | Boundary values on financial fields | `mandatory` |
 | Boundary values on non-critical fields | `required` |
 | Optional/advisory coverage | `advisory` |
+| Security rule enforcement (AuthN/AuthZ/injection) | `mandatory` |
+| Performance SLA threshold | `mandatory` |
+| Compliance / GDPR constraint | `mandatory` |
+| Accessibility (WCAG) requirement | `required` (critical A11y → `mandatory`) |
 
 ---
 
-## Full Tag Example
+## Full Tag Examples
 
+Minimal (4 mandatory categories only):
 ```
 **Tags**: `severity:smoke` `category:api` `domain:payments` `type:component-test`
 ```
@@ -85,4 +115,9 @@ When a TC was produced by merging multiple strategies, include all applicable ty
 Multiple type tags (merged strategies):
 ```
 **Tags**: `severity:mandatory` `category:api` `domain:orders` `type:limit-case,cross-case`
+```
+
+With additional labels for filtering:
+```
+**Tags**: `severity:mandatory` `category:api` `domain:orders` `type:integration-test` `feature:checkout-v2` `team:commerce` `jira:SHOP-456`
 ```
