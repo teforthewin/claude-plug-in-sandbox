@@ -64,70 +64,68 @@ You are the **Scenario Designer**. Your sole responsibility is to translate busi
 Every TC MUST follow this structure exactly. TCs are organized in the document as:
 `Story / Business Scenario → Use Case → Layer → TC`
 
-### Template
+### Standard 5-field template (MANDATORY, in this order)
+
+Every TC must use exactly these five sections, in this order: **Title → Test description → Inputs → Steps → Acceptance criteria**. Tags appear between Title and Inputs as a single line; they are not a section. Do not add extra sections (no separate Prerequisites, Assert, Cleanup, Edge Cases, or Negative Tests blocks — fold those into Inputs / Acceptance criteria / new TCs as appropriate).
 
 ```markdown
-##### TC-{story-id}-{NNN}: [Business-Oriented Title]
+### TC-{story-id}-{NNN}
 
-**Description**: [One clear sentence describing the desired business outcome]
+**Title**: {short, action-oriented title — one line, what the test does}
+
+**Test description**: {2–4 sentences. State BOTH (a) what this test represents from a **business** standpoint — the user-visible outcome or business rule being validated — AND (b) what it represents from a **technical** standpoint — the system behavior, contract, invariant, or boundary under test. Cite the source acceptance criterion or rule where relevant (e.g. "AC-3 from S1").}
 
 **Tags**: `severity:{smoke|mandatory|required|advisory}` `category:{api|web|mobile}` `domain:{domain}` `type:{type-tag[,type-tag]...}` [`label:value`...]
 
-> `{type-tag}` = `component-test` | `integration-test` | `edge-case` | `limit-case` | `cross-case` — comma-separated when multiple strategies apply (e.g. `type:limit-case,cross-case`). Additional `label:value` tags are optional and unlimited — add any team-specific labels for filtering (e.g. `feature:checkout-v2` `team:commerce` `jira:PROJ-123`).
+> `{type-tag}` = `component-test` | `integration-test` | `edge-case` | `limit-case` | `cross-case` — comma-separated when multiple strategies apply (e.g. `type:limit-case,cross-case`). Additional `label:value` tags are optional (e.g. `feature:checkout-v2` `team:commerce` `jira:PROJ-123`).
 
-**Prerequisites**:
-- {deterministic precondition in business language}
+**Inputs**:
+| Name | Value / Range | Notes |
+|------|---------------|-------|
+| {param or precondition} | {value, boundary, or initial state} | {why this value / source} |
+| Post-test cleanup | {what must be torn down} | {only if test creates resources} |
+
+> Use the Inputs table for parameters, initial system state, preconditions, and cleanup expectations. Negative-test inputs (invalid values, missing auth, etc.) belong here.
 
 **Steps**:
-1. {ordered step, human-readable, NO implementation details}
-2. {next step}
+1. {actor + observable action — no code, no selectors, no endpoints}
+2. {next action}
 
-**Assert**:
-| Assertion | Expected Value | Type |
+**Acceptance criteria**:
+| Criterion | Expected Value | Type |
 |-----------|---------------|------|
-| {assertion} | {expected} | {status|schema|state|log|metric} |
-
-**Cleanup**:
-- {teardown step}
+| {what must be true after the steps} | {expected outcome} | {status \| schema \| state \| log \| metric} |
 ```
 
-> **Assert types**: `status` (HTTP/response code), `schema` (response body structure), `state` (DB/system state), `log` (structured log entry), `metric` (performance/SLA measurement — latency, throughput, error rate)
+> **Acceptance criteria types**: `status` (response/return code), `schema` (response body or data structure), `state` (system / DB / entity state), `log` (structured log entry), `metric` (performance/SLA — latency, throughput, error rate)
 
-### Edge Cases & Negative Tests (append after TC block when relevant)
+### Document-Level Structure (within a single scope file)
 
-```markdown
-**Edge Cases**:
-- {unusual condition to watch for}
-
-**Negative Tests**:
-- {invalid input or unauthorized action and expected rejection}
-```
-
-### Document-Level Structure
+The orchestrator places each TC into a file at `docs/test-cases/{system}/{story-id}-{slug}/{domain}/{scope}.md`. Inside that file, group TCs by use case:
 
 ```markdown
-# {System} | {Domain}
+# {System} | {Domain} | {Scope}
 
-## Story: {story-id} — {Feature Title}
-<!-- or: ## Business Scenario: {Feature Title} -->
+## Use Case: {use-case-name}
+
+### TC-{story-id}-001
+**Title**: ...
+**Test description**: ...
+**Tags**: ...
+**Inputs**: ...
+**Steps**: ...
+**Acceptance criteria**: ...
 
 ---
 
-### Use Case: {use-case-name}
-
-#### Layer: API | Web | Mobile
-
-##### TC-{story-id}-001: {title}
+### TC-{story-id}-002
 ...
 
-##### TC-{story-id}-002: {title}
-...
-
----
-
-### Use Case: {use-case-name-2}
+## Use Case: {use-case-name-2}
 ...
 ```
+
+Do not write the `index.md` or the file frontmatter yourself — the orchestrator owns those. Return your TCs as a flat list with each TC carrying its `domain` and primary `scope` so the orchestrator can route them.
 
 ---
 
@@ -195,10 +193,12 @@ For each critical path:
 
 Before returning scenarios, verify:
 
-### Structural Quality
-- [ ] Every TC has: ID, title, description, tags, prerequisites, steps, assert
-- [ ] TCs organized as Story/Scenario → Use Case → Layer → TCs
-- [ ] TC IDs are sequential within the document
+### Structural Quality (5-field template)
+- [ ] Every TC has, in order: **Title**, **Test description**, **Inputs**, **Steps**, **Acceptance criteria**
+- [ ] Tags line present between Title and Inputs
+- [ ] No legacy sections (no separate Description / Prerequisites / Assert / Cleanup blocks — folded into the 5 fields)
+- [ ] Every TC carries `domain` and primary `scope` so the orchestrator can route to `{domain}/{scope}.md`
+- [ ] TC IDs are sequential within the run
 - [ ] All 4 tag categories present on every TC (severity, category, domain, type)
 
 ### Content Quality
@@ -207,12 +207,12 @@ Before returning scenarios, verify:
 - [ ] All TCs are technology-agnostic
 
 ### Business Quality
-- [ ] All TCs have clear business value
+- [ ] **Test description** covers BOTH the business meaning AND the technical behavior under test
+- [ ] **Inputs** include preconditions, initial state, and cleanup expectations (when applicable)
+- [ ] **Acceptance criteria** are tabular and measurable, with assertion type per row
 - [ ] Positive and negative paths covered
 - [ ] Edge cases documented
 - [ ] NFR ATUs from input are represented (security, performance, compliance, accessibility)
-- [ ] Success criteria are measurable
-- [ ] Cleanup steps explicit for every TC that creates resources
 
 ---
 

@@ -101,41 +101,59 @@ The plugin produces **two artifacts** per run:
 
 Written to `<project>/.claude/skills/<feature-slug>-{functional|technical|ui|nfr}/SKILL.md`. Each skill captures the system feature's knowledge from one analytical lens — entities, contracts, business rules, dependencies, NFRs — plus the Atomic Testable Units derived from it. These skills are reusable feature documentation for anyone working on the feature, and are also the input contract for Phase 2. Re-running on the same feature merges into the existing skills; the `## Manual Notes` section is always preserved.
 
-### 2. The test scenario document
+### 2. The test scenario suite — split across multiple files
 
-A structured Markdown document at `docs/test-cases/{system}/{story-id}-{slug}.md` containing:
+Test cases are written to a **directory**, not a single file. Each `(domain × scope)` pair gets its own scope file, and an `index.md` at the root provides metadata, the file map, the coverage matrix, and the NFR coverage matrix.
 
-- **YAML frontmatter** — system, domain, story, channel, total tests, use cases, AC coverage, NFR coverage, testing levels, append mode
-- **Test cases** organized as Story/Scenario → Use Case → Layer → TC
-- **Each TC** — ID, description, 4 mandatory tags, prerequisites, steps, assertions table, cleanup
-- **Coverage Matrix** — TC × use case × layer × domain × strategy × severity
-- **NFR Coverage Matrix** — every NFR ATU mapped to its TC(s)
-- **Optimization Report** — raw scenarios → after dedupe → after multi-concern merge
-- **Quality Checklist**
+```
+docs/test-cases/{system}/{story-id}-{slug}/
+├── index.md                                  # frontmatter + matrices + file map
+├── payments/
+│   ├── component-tests.md
+│   ├── integration-tests.md
+│   └── edge-cases.md
+├── security/
+│   ├── edge-cases.md
+│   └── limit-cases.md
+└── accessibility/
+    └── component-tests.md
+```
 
-### Example TC
+- **`index.md`** holds the run frontmatter, the file map, the **Coverage Matrix** (TC × use case × layer × domain × scope × severity × file), the **NFR Coverage Matrix**, the optimization report, and the quality checklist.
+- **Scope files** group their TCs by use case. Empty scope files are not emitted.
+- A TC merged across multiple strategies lives in its primary scope file and is cross-referenced from the secondary one.
+
+### Standard TC template (5 fields, mandatory)
+
+Every TC, in every file, follows this exact template — no extra sections, no missing sections:
 
 ```markdown
-##### TC-TE-123-001: Create Order — valid input produces new order with status "created"
+### TC-TE-123-001
+
+**Title**: Create order with valid input produces a new order in "created" state
+
+**Test description**: Validates that a successful order submission creates a new order resource and decrements stock — the user-visible outcome is an order confirmation, the technical contract under test is that the order entity is persisted in `created` status, an inventory state change is committed atomically with the order, and the response payload exposes the new order id. Covers AC-3 from S1 (functional spec).
 
 **Tags**: `severity:smoke` `category:api` `domain:orders` `type:component-test`
 
-**Prerequisites**:
-- Authenticated user account exists
+**Inputs**:
+| Name | Value / Range | Notes |
+|------|---------------|-------|
+| Authentication | Logged-in user | Precondition |
+| Product id | Valid catalog id | Stock ≥ 1 |
+| Quantity | 1 | Within min/max |
+| Post-test cleanup | Cancel + delete the test order | Required |
 
 **Steps**:
-1. User submits order with valid product ID and quantity
+1. User submits an order with the product id and quantity
 2. System processes the order request
 
-**Assert**:
-| Assertion | Expected Value | Type |
+**Acceptance criteria**:
+| Criterion | Expected Value | Type |
 |-----------|---------------|------|
 | Order status | "created" | state |
-| Order ID returned | non-null UUID | schema |
-| Inventory updated | quantity decremented | state |
-
-**Cleanup**:
-- Cancel and delete the test order
+| Order id returned | non-null UUID | schema |
+| Inventory updated | quantity decremented by the ordered amount | state |
 ```
 
 ---

@@ -452,30 +452,42 @@ System
 - `compliance` — GDPR, data retention, right-to-erasure, consent
 - `accessibility` — WCAG, keyboard navigation, screen reader, contrast
 
-### 8.2 — New File Mode (Default)
+### 8.2 — New File Mode (Default) — Multi-File Output
 
-Write to:
+**Test cases are split across multiple files**, one file per (domain × scope) pair, plus a single index file. This keeps each file readable, makes review tractable, and lets teams own parts of the suite independently.
+
+#### Directory layout
+
 ```
-docs/test-cases/{system}/{story-id}-{slug}.md
+docs/test-cases/{system}/{story-id}-{slug}/
+├── index.md                                         # entry point — overview + matrices
+├── {domain}/
+│   ├── component-tests.md                           # all component-test TCs for this domain
+│   ├── integration-tests.md                         # all integration-test TCs for this domain
+│   ├── edge-cases.md                                # all edge-case TCs for this domain
+│   ├── limit-cases.md                               # all limit-case TCs for this domain
+│   └── cross-cases.md                               # all cross-case TCs for this domain
+└── {other-domain}/
+    └── ...
 ```
 
 Where:
 - `{system}` = EPIC / tested system name (e.g. `parking-api`, `backoffice`)
-- `{story-id}-{slug}` = story ID + kebab-case feature title (e.g. `TE-162-order-creation`)
-- If no story ID: use a business-scenario slug only (e.g. `user-registration`)
+- `{story-id}-{slug}` = story ID + kebab-case feature title (e.g. `TE-162-order-creation`); if no story id, use the business-scenario slug only
+- `{domain}` = one of the standard taxonomy values (e.g. `payments`, `authentication`, `security`, `performance`, `accessibility`)
+- One file per scope (`component-tests`, `integration-tests`, `edge-cases`, `limit-cases`, `cross-cases`) — only emit files for scopes that contain at least one TC after Phase 3 optimization
+- A TC merged across multiple strategies (e.g. `limit-case,cross-case`) lives in the file matching its **primary** strategy (the first listed), and is cross-referenced from the other scope's file via a one-line link
 
-**YAML frontmatter**:
+#### `index.md` — entry point
 
-```yaml
+```markdown
 ---
 system: {system}
-domain: {domain}
 story: {story-id}
-scenario: {scenario-title}
 title: {Feature Title}
 source: {story_id or description}
 source_type: {spec_ac | tech_spec | ui_doc | local_code | compliance_doc}
-channel: {api / web / mobile / hybrid}
+channel: {api | web | mobile | hybrid}
 total_tests: N
 use_cases:
   - {use-case-1}
@@ -495,62 +507,33 @@ testing_levels:
 append_mode: false
 date: {YYYY-MM-DD}
 ---
-```
 
-**Document body structure**:
-
-```markdown
-# {System} | {Domain}
+# {System} | {Feature Title}
 
 ## Story: {story-id} — {Feature Title}
 <!-- If no story ID: ## Business Scenario: {Feature Title} -->
 
----
+## Files
 
-### Use Case: {use-case-name}
-
-#### Layer: API | Web | Mobile
-
-##### TC-{story-id}-001: {title}
-
-**Description**: One-sentence business outcome this test validates.
-
-**Tags**: `severity:{smoke|mandatory|required|advisory}` `category:{api|web|mobile}` `domain:{domain}` `type:{type-tag[,type-tag]...}` [`label:value`...]
-
-> `{type-tag}` = `component-test` | `integration-test` | `edge-case` | `limit-case` | `cross-case` — comma-separated when multiple strategies apply (e.g. `type:limit-case,cross-case`). Additional `label:value` tags are optional and unlimited — add any team-specific labels for filtering (e.g. `feature:checkout-v2` `team:commerce` `jira:PROJ-123`).
-
-**Prerequisites**:
-- {precondition}
-
-**Steps**:
-1. {action step}
-
-**Assert**:
-| Assertion | Expected Value | Type |
-|-----------|---------------|------|
-| {assertion} | {expected} | {status|schema|state|log|metric} |
-
-**Cleanup**:
-- {teardown step}
-
----
+| Domain | Scope | File | TCs |
+|--------|-------|------|-----|
+| payments | component-tests | [payments/component-tests.md](payments/component-tests.md) | 8 |
+| payments | integration-tests | [payments/integration-tests.md](payments/integration-tests.md) | 5 |
+| security | edge-cases | [security/edge-cases.md](security/edge-cases.md) | 3 |
+| ... | ... | ... | ... |
 
 ## Coverage Matrix
 
-| TC ID | Title | Use Case | Layer | Domain | Strategy | Severity |
-|-------|-------|---------|-------|--------|----------|----------|
-...
-
----
+| TC ID | Title | Use Case | Layer | Domain | Scope | Severity | File |
+|-------|-------|---------|-------|--------|-------|----------|------|
+| TC-{id}-001 | ... | ... | API | payments | component-test | smoke | payments/component-tests.md |
+| ... |
 
 ## NFR Coverage Matrix
 
-| ATU ID | Sub-domain | Covered By TC | Status |
-|--------|-----------|---------------|--------|
-| NFR-1  | Security  | TC-{id}-0XX   | ✅     |
-| NFR-2  | Performance | TC-{id}-0XX | ✅     |
-
----
+| ATU ID | Sub-domain | Covered By TC | File | Status |
+|--------|-----------|---------------|------|--------|
+| NFR-1  | Security  | TC-{id}-0XX   | security/edge-cases.md | ✅ |
 
 ## Optimization Report
 
@@ -558,48 +541,124 @@ Total from sub-agents: {N}
 After optimization: {N}
 Reduction: {N}%
 
----
-
 ## Quality Checklist
 
-- [ ] Every TC has: ID, title, description, tags, prerequisites, steps, assert
+- [ ] Every TC uses the standard 5-field template (Title / Test description / Inputs / Steps / Acceptance criteria)
 - [ ] All 4 mandatory tag categories on every TC (severity, category, domain, type); additional labels allowed and preserved
-- [ ] Tests grouped by Use Case → Layer within each Story/Scenario section
-- [ ] Positive, negative, and edge cases covered for each critical use case
+- [ ] Files split by domain × scope; empty scope files are not emitted
 - [ ] No implementation details in any TC (no code, selectors, or endpoints)
-- [ ] Cleanup steps explicit for all TCs that create resources
-- [ ] Coverage matrix present and complete
+- [ ] Coverage matrix in index.md is complete and links to the right files
 - [ ] NFR coverage matrix present — all NFR ATUs accounted for
 ```
 
+#### Scope file — `{domain}/{scope}.md`
+
+Each scope file carries its own short YAML frontmatter and one section per use case. Every TC follows the **standard 5-field template** below.
+
+```markdown
+---
+system: {system}
+story: {story-id}
+domain: {domain}
+scope: {component-test | integration-test | edge-case | limit-case | cross-case}
+parent_index: ../index.md
+total_tests: N
+date: {YYYY-MM-DD}
+---
+
+# {System} | {Domain} | {Scope}
+
+> Parent: [`index.md`](../index.md)
+
+---
+
+## Use Case: {use-case-name}
+
+### TC-{story-id}-001
+
+**Title**: {short, action-oriented title — what the test does in one line}
+
+**Test description**: {2–4 sentences. State both what this test represents from a **business** standpoint (the user-visible outcome / business rule being validated) and from a **technical** standpoint (the system behavior, contract, or invariant under test). Cite the source acceptance criterion or rule where relevant.}
+
+**Tags**: `severity:{smoke|mandatory|required|advisory}` `category:{api|web|mobile}` `domain:{domain}` `type:{type-tag[,type-tag]...}` [`label:value`...]
+
+> `{type-tag}` = `component-test` | `integration-test` | `edge-case` | `limit-case` | `cross-case` — comma-separated when multiple strategies apply (e.g. `type:limit-case,cross-case`). Additional `label:value` tags are optional (e.g. `feature:checkout-v2` `team:commerce` `jira:PROJ-123`).
+
+**Inputs**:
+| Name | Value / Range | Notes |
+|------|---------------|-------|
+| {param} | {value or boundary} | {why this value} |
+
+> Include the initial system state / preconditions here as inputs (e.g. "Authenticated user account exists", "Cart contains 1 item"). If a test creates resources, list the cleanup expectation in a final input row labelled "Post-test cleanup".
+
+**Steps**:
+1. {action step — actor + observable action; no code, no selectors, no endpoints}
+2. {next action step}
+
+**Acceptance criteria**:
+| Criterion | Expected Value | Type |
+|-----------|---------------|------|
+| {what must be true} | {expected outcome} | {status \| schema \| state \| log \| metric} |
+
+---
+
+### TC-{story-id}-002
+
+**Title**: ...
+**Test description**: ...
+**Tags**: ...
+**Inputs**: ...
+**Steps**: ...
+**Acceptance criteria**: ...
+
+---
+```
+
+#### Mandatory TC template (every TC, in every file)
+
+Exactly five sections, in this order:
+
+1. **Title** — short, action-oriented, one line.
+2. **Test description** — 2–4 sentences, covering both the business meaning and the technical behavior under test.
+3. **Inputs** — table of parameters, initial state, preconditions, and cleanup expectations.
+4. **Steps** — numbered, technology-agnostic actions.
+5. **Acceptance criteria** — table of assertions with expected values and assertion types.
+
+Tags appear between Title and Inputs as a single line; they are not a section.
+
 ### 8.3 — Append Mode
 
-When extending an existing document:
+When extending an existing run directory:
 
-1. Read the existing file content
-2. Identify the relevant Use Case + Layer section (or create new ones)
-3. Append new TCs after the last TC in the target section
-4. Update YAML frontmatter: increment `total_tests`, update `date`, union `testing_levels` and `use_cases`, update `nfr_coverage` counts, set `append_mode: true`
-5. Append to the Coverage Matrix and NFR Coverage Matrix
-6. Update the Quality Checklist
+1. Read `index.md` and every existing scope file under `docs/test-cases/{system}/{story-id}-{slug}/`.
+2. For each new TC, compute its target file: `{domain}/{primary-scope}.md`. Create the file (and the domain subdirectory) if it does not exist.
+3. Append the new TC at the end of the matching `## Use Case: ...` section, or create the section if it does not exist.
+4. Update each touched scope file's frontmatter: increment `total_tests`, update `date`.
+5. Update `index.md`: refresh the **Files** table TC counts, append rows to the Coverage Matrix and NFR Coverage Matrix, set `append_mode: true`, increment `total_tests`, union `testing_levels` and `use_cases`, update `nfr_coverage` counts.
+6. Existing TCs are never overwritten. Detection is by `TC-{story-id}-{NNN}` id (carried over from Phase 4.5 already-covered list).
 
 ### 8.4 — Self-Check Before Returning
 
-- [ ] Test case `.md` file exists on disk at the correct path
-- [ ] Every TC has all required fields: ID, title, description, tags, prerequisites, steps, assert
-- [ ] All TCs grouped by Use Case → Layer
-- [ ] Coverage matrix is present and accurate
-- [ ] NFR Coverage Matrix is present — all NFR ATUs are accounted for
+- [ ] Run directory `docs/test-cases/{system}/{story-id}-{slug}/` exists on disk
+- [ ] `index.md` exists and links to every emitted scope file
+- [ ] Every emitted scope file lives under `{domain}/{scope}.md` with at least one TC
+- [ ] No empty scope file was emitted (a scope with 0 TCs after optimization is omitted)
+- [ ] Every TC uses the 5-field template: Title, Test description, Inputs, Steps, Acceptance criteria
+- [ ] All 4 mandatory tag categories on every TC
+- [ ] Coverage Matrix in `index.md` is complete; every row's `File` column resolves to an actual file
+- [ ] NFR Coverage Matrix is present in `index.md` — all NFR ATUs are accounted for
 - [ ] Optimization report shows merge results
 
-**IF FILE IS NOT WRITTEN**: do not return — write the file first.
+**IF FILES ARE NOT WRITTEN**: do not return — write them first.
 
 ### 8.5 — Delivery Confirmation
 
 ```
 ✅ TEST CASES PERSISTED
 
-File:            docs/test-cases/{system}/{story-id}-{slug}.md
+Run directory:   docs/test-cases/{system}/{story-id}-{slug}/
+Index:           docs/test-cases/{system}/{story-id}-{slug}/index.md
+Scope files:     {N} files across {M} domains
 Total TCs:       {N} ({N_original} from sub-agents, optimized to {N_final})
 Use Cases:       {list}
 Coverage:        {N}/{N} acceptance criteria covered
@@ -638,15 +697,18 @@ Before delivering:
   - [x] NFR Coverage Matrix is present and complete
 
 ✅ Hierarchy & Organization
-  - [x] Every TC belongs to exactly one Use Case and one Layer
-  - [x] File organized as: Story/Scenario → Use Case → Layer → TCs
+  - [x] Run directory exists with `index.md` + per-domain subdirectories
+  - [x] One file per (domain × scope); empty scope files are omitted
+  - [x] Every TC belongs to exactly one Use Case and one file
   - [x] Use cases align with operations described in the per-domain SKILL.md files
 
-✅ TC Completeness
-  - [x] Every TC has: ID, title, description, tags, prerequisites, steps, assert
+✅ TC Completeness — Standard 5-field template
+  - [x] Every TC has, in order: Title, Test description, Inputs, Steps, Acceptance criteria
+  - [x] Test description covers BOTH business meaning AND technical behavior
+  - [x] Inputs include preconditions / initial state / cleanup expectations
+  - [x] Acceptance criteria are tabular with assertion type per row
   - [x] All 4 mandatory tag categories on every TC (severity, category, domain, type); additional labels allowed and preserved
   - [x] Positive, negative, and edge cases present for each critical use case
-  - [x] Cleanup steps present for every TC that creates resources
 
 ✅ Technology Agnosticism
   - [x] Zero code in any TC
