@@ -22,9 +22,9 @@ flowchart TD
         SC[source-curator<br/>raw inputs → MD files by domain + routing manifest] --> A[Active analysts only<br/>functional / technical / ui-ux / quality-compliance<br/>in parallel]
         A --> CF{Conflicts?}
         CF -->|Yes| HALT[Halt + ask user] --> A
-        CF -->|No| SS[skill-synthesizer → Skill Store]
+        CF -->|No| SA[skill-author → one Claude Code skill per domain<br/>under &lt;project&gt;/.claude/skills/&lt;feature-slug&gt;-&lt;domain&gt;/]
     end
-    P1 --> P2[Phase 2: Dispatch selected strategies in parallel<br/>component / integration / edge / limit / cross<br/>→ scenario-designer]
+    P1 --> P2[Phase 2: Dispatch selected strategies in parallel<br/>component / integration / edge / limit / cross<br/>each reads the emitted SKILL.md files<br/>→ scenario-designer]
     P2 --> P3[Phase 3: Merge, dedupe, re-sequence]
     P3 -->|gap| P2
     P3 --> P4[Phase 4: scenario-coverage-checker]
@@ -32,7 +32,7 @@ flowchart TD
     P4 -->|PASS| P5[Phase 5: Write docs/test-cases/...md + deliver] --> U
 ```
 
-**Phase 1** starts with `source-curator`, which ingests raw heterogeneous inputs (PDFs, OpenAPI, wireframes, code, compliance docs) and emits **AI-optimized Markdown files organized by domain** (functional / technical / ui-ux / non-functional) plus a routing manifest. Only the analyst lenses that have material to analyze are then dispatched in parallel. A `skill-synthesizer` finally produces a **Skill Store** of Atomic Testable Units. Conflicts between sources halt the process and surface to the user.
+**Phase 1** starts with `source-curator`, which ingests raw heterogeneous inputs (PDFs, OpenAPI, wireframes, code, compliance docs) and emits **AI-optimized Markdown files organized by domain** (functional / technical / ui-ux / non-functional) plus a routing manifest. Only the analyst lenses that have material to analyze are then dispatched in parallel. Conflicts between sources halt the process and surface to the user. After conflict resolution, `skill-author` writes **one Claude Code skill per non-empty domain** into `<project>/.claude/skills/<feature-slug>-<domain>/SKILL.md`. Each skill captures the system feature's knowledge (entities, contracts, business rules, NFRs) plus the Atomic Testable Units derived from it — making feature documentation a reusable artifact for the whole team. Re-runs **merge** into existing skills (the `## Manual Notes` section is always preserved).
 
 **Phase 2** dispatches only the testing strategies you select:
 
@@ -94,6 +94,14 @@ The orchestrator will not proceed until you answer:
 ---
 
 ## Output
+
+The plugin produces **two artifacts** per run:
+
+### 1. Per-domain Claude Code skills
+
+Written to `<project>/.claude/skills/<feature-slug>-{functional|technical|ui|nfr}/SKILL.md`. Each skill captures the system feature's knowledge from one analytical lens — entities, contracts, business rules, dependencies, NFRs — plus the Atomic Testable Units derived from it. These skills are reusable feature documentation for anyone working on the feature, and are also the input contract for Phase 2. Re-running on the same feature merges into the existing skills; the `## Manual Notes` section is always preserved.
+
+### 2. The test scenario document
 
 A structured Markdown document at `docs/test-cases/{system}/{story-id}-{slug}.md` containing:
 
@@ -165,14 +173,14 @@ See the [`tag-system`](skills/tag-system/) skill for full rules.
 | `technical-architect` | Phase 1 — APIs, schemas, data models, dependencies |
 | `ui-ux-specialist` | Phase 1 — navigation, screens, validations, A11y |
 | `quality-compliance-agent` | Phase 1 — Security, Performance, Compliance, Reliability |
-| `skill-synthesizer` | Phase 1 — produces the Skill Store from the 4 lenses |
+| `skill-author` | Phase 1 — writes one Claude Code skill per non-empty domain into `<project>/.claude/skills/`. Idempotent: merges into existing skills, preserves `## Manual Notes`. |
 | `component-strategy` | Phase 2 — single-unit isolation tests |
 | `integration-strategy` | Phase 2 — cross-boundary interaction tests |
 | `edge-case-strategy` | Phase 2 — unusual/adversarial conditions |
 | `limit-case-strategy` | Phase 2 — boundary values |
 | `cross-case-strategy` | Phase 2 — combinatorial/pairwise tests |
 | `scenario-designer` | Phase 2 — converts strategy outputs into TC Markdown |
-| `scenario-coverage-checker` | Phase 4 — PASS/FAIL/PARTIAL audit vs Skill Store + ACs |
+| `scenario-coverage-checker` | Phase 4 — PASS/FAIL/PARTIAL audit; reads ATUs and ACs from the per-domain SKILL.md files emitted by `skill-author` |
 
 ### Skills
 

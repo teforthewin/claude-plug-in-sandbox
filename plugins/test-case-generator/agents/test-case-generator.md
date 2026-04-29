@@ -1,6 +1,6 @@
 ---
 name: test-case-generator
-description: "Multi-strategy test case generator. Converts business requirements, technical specifications, UI docs, source code, and compliance/legal documents into domain-organized test scenario documents. Phase 1 starts with a source-curator sub-agent that ingests raw heterogeneous inputs and emits AI-optimized Markdown files organized by domain plus a routing manifest, then dispatches only the analyst sub-agents that have material to analyze (functional-analyst, technical-architect, ui-ux-specialist, quality-compliance-agent), then a skill-synthesizer produces the Atomic Testable Unit Skill Store. Phase 2 dispatches 5 parallel testing strategies: Component, Integration, Edge Case, Limit Case, and Cross Case. Optimizes coverage by merging redundant tests. Supports append-to-existing mode. Orchestrates sub-agents (source-curator, functional-analyst, technical-architect, ui-ux-specialist, quality-compliance-agent, skill-synthesizer, component-strategy, integration-strategy, edge-case-strategy, limit-case-strategy, cross-case-strategy) → scenario-coverage-checker to produce validated, tagged, domain-grouped Markdown scenario documents."
+description: "Multi-strategy test case generator. Converts business requirements, technical specifications, UI docs, source code, and compliance/legal documents into domain-organized test scenario documents. Phase 1 starts with a source-curator sub-agent that ingests raw heterogeneous inputs and emits AI-optimized Markdown files organized by domain plus a routing manifest, then dispatches only the analyst sub-agents that have material to analyze (functional-analyst, technical-architect, ui-ux-specialist, quality-compliance-agent), then a skill-author writes one Claude Code skill per domain into the user's project under .claude/skills/<feature-slug>-<domain>/SKILL.md (idempotent: existing skills are merged, not overwritten). Phase 2 reads those skill files and dispatches 5 parallel testing strategies: Component, Integration, Edge Case, Limit Case, and Cross Case. Optimizes coverage by merging redundant tests. Supports append-to-existing mode. Orchestrates sub-agents (source-curator, functional-analyst, technical-architect, ui-ux-specialist, quality-compliance-agent, skill-author, component-strategy, integration-strategy, edge-case-strategy, limit-case-strategy, cross-case-strategy) → scenario-coverage-checker to produce validated, tagged, domain-grouped Markdown scenario documents."
 tools:
   - Read
   - Write
@@ -56,10 +56,10 @@ flowchart TD
         SC[source-curator<br/>raw inputs → domain-scoped MD files + routing manifest] --> A[Active analysts only<br/>functional / technical / ui-ux / quality-compliance<br/>in parallel]
         A --> CF{Conflicts?}
         CF -->|Yes| HALT[Halt + ask user] --> A
-        CF -->|No| SS[skill-synthesizer → Skill Store]
+        CF -->|No| SA[skill-author → writes one SKILL.md per domain<br/>into &lt;project&gt;/.claude/skills/&lt;feature-slug&gt;-&lt;domain&gt;/]
     end
 
-    P1 --> P2[Phase 2: Dispatch selected strategies in parallel<br/>component / integration / edge / limit / cross<br/>→ scenario-designer]
+    P1 --> P2[Phase 2: Dispatch selected strategies in parallel<br/>component / integration / edge / limit / cross<br/>each reads the emitted SKILL.md files<br/>→ scenario-designer]
     P2 --> P3[Phase 3: Merge, dedupe, re-sequence]
     P3 -->|gap| P2
     P3 --> P4[Phase 4: scenario-coverage-checker]
@@ -134,7 +134,7 @@ Ask these questions and **wait for answers before proceeding**:
 
 ## 4. Phase 1 — Multi-Dimensional Knowledge Extraction
 
-Phase 1 has three stages: **(1) curation** (a `source-curator` sub-agent transforms raw inputs into AI-optimized Markdown files organized by domain and emits a routing manifest), **(2) parallel analysis** (only the analyst lenses that have curated material are dispatched), **(3) conflict detection + synthesis** into the Skill Store.
+Phase 1 has three stages: **(1) curation** (a `source-curator` sub-agent transforms raw inputs into AI-optimized Markdown files organized by domain and emits a routing manifest), **(2) parallel analysis** (only the analyst lenses that have curated material are dispatched), **(3) conflict detection + skill authoring** — the `skill-author` sub-agent writes one Claude Code skill per non-empty domain into `<project>/.claude/skills/<feature-slug>-<domain>/SKILL.md`. These skills carry both the system feature knowledge and the Atomic Testable Units consumed by Phase 2.
 
 ### 4.1 — Source Curation & Routing (delegated to `source-curator`)
 
@@ -212,15 +212,22 @@ Conflict 2: ...
 
 **Do not proceed until the user resolves all conflicts.** After resolution, re-dispatch any analyst whose input changed.
 
-### 4.4 — Skill Synthesizer Sub-Agent → Skill Store
+### 4.4 — Skill Author Sub-Agent → Per-Domain Claude Code Skills
 
-After conflict resolution, delegate synthesis to the `skill-synthesizer` sub-agent. Pass it the four findings blocks (Functional, Technical, UI, Non-Functional). It returns the canonical **Skill Store** — a structured repository of Atomic Testable Units (ATUs).
+After conflict resolution, delegate to the `skill-author` sub-agent. Pass it the four findings blocks plus the feature metadata. It writes **one Claude Code skill per non-empty domain** into the user's project under `.claude/skills/`, and returns a list of skill paths.
+
+These skills are **system feature documentation** (entities, contracts, business rules, NFRs) — not test artifacts. They are intended to be reusable across the team. The Atomic Testable Units inside each skill are the same schema as before; they let Phase 2 strategy sub-agents (and the coverage checker) work directly off the emitted skill files.
 
 ```
 Agent(
-  subagent_type: "skill-synthesizer",
+  subagent_type: "skill-author",
   prompt: """
-    Synthesize the following four lens findings into a Skill Store.
+    Write one Claude Code skill per non-empty domain for this feature.
+
+    FEATURE_SLUG: {feature_slug}        # kebab-case, e.g. te-162-order-creation
+    FEATURE_TITLE: {feature_title}
+    SYSTEM: {system}
+    PROJECT_ROOT: {absolute_path_to_user_project}
 
     FUNCTIONAL FINDINGS:
     {functional_findings}
@@ -234,64 +241,16 @@ Agent(
     NON-FUNCTIONAL FINDINGS:
     {nfr_findings}
 
-    Follow the format and self-check defined in your agent file.
+    ACCEPTANCE CRITERIA (verbatim):
+    {acceptance_criteria}
+
+    Follow the format, idempotency rule, and self-check defined in your agent file.
+    Idempotency: if a target SKILL.md already exists, MERGE — never overwrite the `## Manual Notes` section.
   """
 )
 ```
 
-#### Skill Store Format (returned by skill-synthesizer)
-
-```markdown
-## Skill Store — {Feature Title}
-
-### Use Cases
-- {use-case-name}: {one-line description of the actor goal}
-
-### Atomic Testable Units
-
-#### FUNC-{N}: {name}
-- Domain: Functional
-- Context: {required system state / prerequisites}
-- Action/Trigger: {specific event, user action, or API call}
-- Expected Outcome: {measurable result — business rule satisfied, entity created, etc.}
-- Source: {AC-N | BR-N | line N}
-
-#### TECH-{N}: {name}
-- Domain: Technical
-- Context: {required state}
-- Action/Trigger: {data operation, integration event, state machine transition}
-- Expected Outcome: {schema valid, DB record created, dependency invoked}
-- Source: {endpoint | method | constraint}
-
-#### UI-{N}: {name}
-- Domain: UI
-- Context: {screen, user state}
-- Action/Trigger: {user gesture, navigation event, form submission}
-- Expected Outcome: {screen renders, validation message shown, transition occurs}
-- Source: {wireframe ref | design spec | AC-N}
-
-#### NFR-{N}: {name}
-- Domain: Non-Functional
-- Sub-domain: {Security | Performance | Compliance | Reliability | Accessibility}
-- Context: {load condition, auth state, data classification}
-- Action/Trigger: {request, scenario, user action}
-- Expected Outcome: {latency ≤ X ms | data masked | token rejected | WCAG AA passes}
-- Source: {SLA doc | GDPR article | security policy | WCAG criterion}
-
-### Entities
-- {entity_name}: {description}
-  - Fields: {field_name} ({type}, {constraints})
-
-### State Machine
-- {entity}: {state_A} → {event} → {state_B} [guard: {condition}]
-
-### Dependencies
-- {component_A} → {component_B}: {interaction_type} ({protocol})
-
-### Acceptance Criteria (verbatim from source)
-- AC-1: {criterion}
-- AC-2: {criterion}
-```
+The author returns a handoff listing every emitted skill path (created or merged) and per-domain ATU counts. **Capture this list of skill paths**, you must forward it to every Phase 2 strategy sub-agent and to the coverage checker.
 
 ### 4.5 — Append Mode Pre-Processing
 
@@ -307,7 +266,7 @@ If the user selected append mode:
 
 ## 5. Phase 2 — Skill-Based Strategy Dispatch
 
-Launch **only the selected testing levels** as parallel sub-agents using the `Agent` tool. Each sub-agent invocation receives the **Skill Store** (all 4 domains), the channel, and the already-covered list.
+Launch **only the selected testing levels** as parallel sub-agents using the `Agent` tool. Each sub-agent invocation receives the **list of SKILL.md file paths** emitted by `skill-author` (one per non-empty domain), the channel, and the already-covered list. The strategy sub-agent reads the SKILL.md files itself and parses the `## Atomic Testable Units` section.
 
 ### 5.1 — Sub-Agent Mapping
 
@@ -331,8 +290,9 @@ Agent(
 
     Read and follow the full instructions in: .claude/agents/{strategy-agent-name}.md
 
-    SKILL STORE (all domains — Functional, Technical, UI, Non-Functional):
-    {skill_store_from_phase_1}
+    SKILL FILES (one per non-empty domain — read the `## Atomic Testable Units`
+    and `## Feature Knowledge` sections from each):
+    {list_of_skill_paths_from_skill_author}
 
     CHANNEL: {channel}
     COVERAGE SCOPE: {scope}
@@ -446,7 +406,7 @@ NFR coverage:
 **Delegate to sub-agent**: `scenario-coverage-checker`
 
 Pass:
-1. The full Skill Store (all ATUs from all 4 domains)
+1. The list of SKILL.md paths emitted by `skill-author` (the checker reads ATUs and ACs from these)
 2. The generated TC document
 3. The selected testing levels
 
@@ -680,7 +640,7 @@ Before delivering:
 ✅ Hierarchy & Organization
   - [x] Every TC belongs to exactly one Use Case and one Layer
   - [x] File organized as: Story/Scenario → Use Case → Layer → TCs
-  - [x] Use cases align with operations in the Skill Store
+  - [x] Use cases align with operations described in the per-domain SKILL.md files
 
 ✅ TC Completeness
   - [x] Every TC has: ID, title, description, tags, prerequisites, steps, assert

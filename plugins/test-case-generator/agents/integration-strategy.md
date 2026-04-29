@@ -37,7 +37,7 @@ You are the **Integration Testing Strategy Sub-Agent**. You apply an **integrati
 
 You receive from the orchestrator:
 
-1. **Behavioral Surface** — structured Markdown (key section: `### Dependencies`)
+1. **Skill Files** — a list of `<project>/.claude/skills/<feature-slug>-<domain>/SKILL.md` paths (one per non-empty domain) emitted by `skill-author`. Read them with the `Read` tool. The `## Atomic Testable Units` section in each is your primary input; the `## Feature Knowledge` section is your source for cross-component data flow — pay special attention to `### Dependencies` and `### Contracts / Interfaces`, especially in the `technical` domain skill.
 2. **Channel(s)** — API / Web / Mobile / Hybrid
 3. **Already Covered list** — scenario IDs and test goals from existing test suites
 4. **Coverage scope** — Happy path only / Happy + errors / Full coverage

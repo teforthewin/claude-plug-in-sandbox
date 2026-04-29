@@ -1,6 +1,6 @@
 ---
 name: scenario-coverage-checker
-description: "Validates that generated test cases cover all acceptance criteria AND all Non-Functional ATUs (Security, Performance, Compliance, Accessibility) from the Skill Store. Used by the test-case-generator in Phase 4 (Coverage Validation). Produces a PASS/FAIL/PARTIAL checklist with dimensional alignment against the full Skill Store. Read-only — does not generate or modify test cases."
+description: "Validates that generated test cases cover all acceptance criteria AND all Non-Functional ATUs (Security, Performance, Compliance, Accessibility) drawn from the per-domain SKILL.md files emitted by skill-author. Used by the test-case-generator in Phase 4 (Coverage Validation). Produces a PASS/FAIL/PARTIAL checklist with dimensional alignment across all skill files. Read-only — does not generate or modify test cases."
 tools:
   - Read
   - Glob
@@ -9,7 +9,7 @@ tools:
 
 # Agent: Scenario Coverage Checker
 
-**Role**: Verify that generated test cases cover all acceptance criteria and all Non-Functional ATUs from the Skill Store  
+**Role**: Verify that generated test cases cover all acceptance criteria and all Non-Functional ATUs found across the per-domain SKILL.md files emitted by `skill-author`  
 **Activation**: Called by `test-case-generator` in Phase 4 — do not invoke directly
 
 ---
@@ -35,11 +35,9 @@ tools:
 
 You receive from the test-case-generator:
 
-1. **Skill Store** — the full ATU repository from Phase 1 (all 4 domains: Functional, Technical, UI, Non-Functional)
-2. **Acceptance Criteria (verbatim)** — from the `### Acceptance Criteria` section of the Skill Store
-3. **NFR ATUs** — all `NFR-{N}` entries from the Skill Store
-4. **Generated TC document** — the Markdown file produced by Phase 2/3
-5. **Selected testing levels** — which strategies were applied
+1. **Skill File Paths** — a list of `<project>/.claude/skills/<feature-slug>-<domain>/SKILL.md` paths emitted by `skill-author`. Read each with the `Read` tool. The union of their `## Atomic Testable Units` sections is the full ATU repository (4 domains: Functional, Technical, UI, Non-Functional). The union of their `## Acceptance Criteria` sections is the AC list. NFR ATUs live in the `nfr` domain skill.
+2. **Generated TC document** — the Markdown file produced by Phase 2/3
+3. **Selected testing levels** — which strategies were applied
 
 ---
 
@@ -47,14 +45,14 @@ You receive from the test-case-generator:
 
 ### Step 1 — Load Acceptance Criteria
 
-Extract each AC from the Skill Store's `### Acceptance Criteria` section:
+Read each provided SKILL.md path and extract every AC from the `## Acceptance Criteria` sections (deduplicate across files):
 ```
 AC-1: {criterion text}
 AC-2: {criterion text}
 ...
 ```
 
-If no explicit ACs were provided (e.g., source was code or a technical spec), derive ACs from the Business Rules and Operations ATUs in the Skill Store.
+If no explicit ACs were provided (e.g., source was code or a technical spec), derive ACs from the Business Rules and Operations ATUs across the skill files.
 
 ### Step 2 — Map TCs to ACs
 
@@ -65,7 +63,7 @@ For each AC, find at least one TC that validates it:
 
 ### Step 3 — Check NFR ATU Coverage (MANDATORY)
 
-For each `NFR-{N}` ATU in the Skill Store, find at least one TC that validates it:
+For each `NFR-{N}` ATU found in the `nfr` domain skill (or any other skill that contains NFR-prefixed ATUs), find at least one TC that validates it:
 
 ```
 NFR-1 (Security — token expiry): covered by TC-{id}-0XX? [YES/NO]

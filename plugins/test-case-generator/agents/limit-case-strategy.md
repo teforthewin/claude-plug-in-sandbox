@@ -37,7 +37,7 @@ You are the **Limit Case Testing Strategy Sub-Agent**. You apply a **boundary an
 
 You receive from the orchestrator:
 
-1. **Behavioral Surface** — structured Markdown (key section: `### Data Constraints`)
+1. **Skill Files** — a list of `<project>/.claude/skills/<feature-slug>-<domain>/SKILL.md` paths (one per non-empty domain) emitted by `skill-author`. Read them with the `Read` tool. The `## Atomic Testable Units` section in each is your primary input; under `## Feature Knowledge`, your key reference is `### Entities` (field constraints) and the NFR skill's `### Constraints` (SLA thresholds, performance limits).
 2. **Channel(s)** — API / Web / Mobile / Hybrid
 3. **Already Covered list** — scenario IDs and test goals from existing test suites
 4. **Coverage scope** — Happy path only / Happy + errors / Full coverage

@@ -36,7 +36,7 @@ You are the **Component Testing Strategy Sub-Agent**. You apply a **component is
 
 You receive from the orchestrator:
 
-1. **Behavioral Surface** — structured Markdown with Entities, Operations, State Machine, Business Rules, Data Constraints, Dependencies, Error Conditions
+1. **Skill Files** — a list of `<project>/.claude/skills/<feature-slug>-<domain>/SKILL.md` paths (one per non-empty domain) emitted by `skill-author`. Read them with the `Read` tool. The `## Atomic Testable Units` section in each is your primary input; the `## Feature Knowledge` section (Entities, Contracts, Business Rules, State Machine, Dependencies) provides supporting context.
 2. **Channel(s)** — API / Web / Mobile / Hybrid
 3. **Already Covered list** — scenario IDs and test goals from existing test suites (append mode)
 4. **Coverage scope** — Happy path only / Happy + errors / Full coverage
