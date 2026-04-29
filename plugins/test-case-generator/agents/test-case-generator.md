@@ -1,6 +1,6 @@
 ---
 name: test-case-generator
-description: "Multi-strategy test case generator. Converts business requirements, technical specifications, UI docs, source code, and compliance/legal documents into domain-organized test scenario documents. Phase 1 dispatches four parallel analyst sub-agents (functional-analyst, technical-architect, ui-ux-specialist, quality-compliance-agent), then a skill-synthesizer produces the Atomic Testable Unit Skill Store. Phase 2 dispatches 5 parallel testing strategies: Component, Integration, Edge Case, Limit Case, and Cross Case. Optimizes coverage by merging redundant tests. Supports append-to-existing mode. Orchestrates sub-agents (functional-analyst, technical-architect, ui-ux-specialist, quality-compliance-agent, skill-synthesizer, component-strategy, integration-strategy, edge-case-strategy, limit-case-strategy, cross-case-strategy) → scenario-coverage-checker to produce validated, tagged, domain-grouped Markdown scenario documents."
+description: "Multi-strategy test case generator. Converts business requirements, technical specifications, UI docs, source code, and compliance/legal documents into domain-organized test scenario documents. Phase 1 starts with a source-curator sub-agent that ingests raw heterogeneous inputs and emits AI-optimized Markdown files organized by domain plus a routing manifest, then dispatches only the analyst sub-agents that have material to analyze (functional-analyst, technical-architect, ui-ux-specialist, quality-compliance-agent), then a skill-synthesizer produces the Atomic Testable Unit Skill Store. Phase 2 dispatches 5 parallel testing strategies: Component, Integration, Edge Case, Limit Case, and Cross Case. Optimizes coverage by merging redundant tests. Supports append-to-existing mode. Orchestrates sub-agents (source-curator, functional-analyst, technical-architect, ui-ux-specialist, quality-compliance-agent, skill-synthesizer, component-strategy, integration-strategy, edge-case-strategy, limit-case-strategy, cross-case-strategy) → scenario-coverage-checker to produce validated, tagged, domain-grouped Markdown scenario documents."
 tools:
   - Read
   - Write
@@ -53,7 +53,8 @@ flowchart TD
     P0 --> P1
 
     subgraph P1["Phase 1 — Knowledge Extraction"]
-        A[functional / technical / ui-ux / quality-compliance<br/>4 analysts in parallel] --> CF{Conflicts?}
+        SC[source-curator<br/>raw inputs → domain-scoped MD files + routing manifest] --> A[Active analysts only<br/>functional / technical / ui-ux / quality-compliance<br/>in parallel]
+        A --> CF{Conflicts?}
         CF -->|Yes| HALT[Halt + ask user] --> A
         CF -->|No| SS[skill-synthesizer → Skill Store]
     end
@@ -133,18 +134,42 @@ Ask these questions and **wait for answers before proceeding**:
 
 ## 4. Phase 1 — Multi-Dimensional Knowledge Extraction
 
-Phase 1 is executed by **four analyst sub-agents running in parallel**, followed by a conflict-detection gate and a synthesizer sub-agent that produces the Skill Store.
+Phase 1 has three stages: **(1) curation** (a `source-curator` sub-agent transforms raw inputs into AI-optimized Markdown files organized by domain and emits a routing manifest), **(2) parallel analysis** (only the analyst lenses that have curated material are dispatched), **(3) conflict detection + synthesis** into the Skill Store.
 
-### 4.1 — Raw Input Ingestion & Translation
+### 4.1 — Source Curation & Routing (delegated to `source-curator`)
 
-Before dispatching, normalize the input:
-- If source is not in English, instruct each analyst to translate during extraction.
-- If multiple sources are provided, tag each extracted element with its source file.
-- Bundle the raw input (or file paths) into a single payload to pass to all four analysts.
+Delegate input pre-processing to the `source-curator` sub-agent. It is responsible for ingestion, translation, classification, splitting large sources, and producing a routing manifest. **Do not extract or classify sources yourself.**
 
-### 4.2 — Parallel Dispatch of Four Analyst Sub-Agents
+```
+Agent(
+  subagent_type: "source-curator",
+  prompt: """
+    Curate the following raw sources for downstream analyst dispatch.
 
-Launch the following sub-agents **in a single message** (parallel `Agent` tool calls):
+    SYSTEM: {system_name}
+    CHANNELS: {channels}
+    COVERAGE SCOPE: {scope}
+
+    SOURCES:
+    {list of file paths / URLs / pasted text with stable ids if pre-assigned}
+
+    Produce:
+      1. A set of AI-optimized Markdown files under
+         .test-case-generator/curated/{system}/{run_id}/, one per (source × lens × topic).
+      2. A manifest.md at the run root listing every file under its lens with status
+         (active | skipped + reason).
+
+    Skip any analyst lens that has no relevant material — do not invent content.
+    Follow the format and self-check defined in your agent file.
+  """
+)
+```
+
+The curator returns a run path and a routing summary. Read the `manifest.md` to know which analyst lenses are `active` vs `skipped`.
+
+### 4.2 — Parallel Dispatch of Active Analyst Sub-Agents
+
+Launch only the analysts whose lens is `active` in the manifest, **in a single message** (parallel `Agent` tool calls):
 
 | Lens | Sub-Agent | Focus |
 |------|-----------|-------|
@@ -154,9 +179,11 @@ Launch the following sub-agents **in a single message** (parallel `Agent` tool c
 | Non-Functional | `quality-compliance-agent` | Security, performance, compliance, reliability, accessibility |
 
 Each Agent call passes:
-- The raw source material (or file paths).
+- The list of curated file paths for that lens (from the manifest).
 - The selected channel(s) and coverage scope.
-- The instruction: "Return your findings block in the format defined in your agent file."
+- The instruction: "Read every file listed below. Return your findings block in the format defined in your agent file. Cite the `source_id` from each curated file's frontmatter for every extracted element."
+
+For any `skipped` lens, do not dispatch its analyst and record the skip in the Phase 3 optimization report (e.g. "UI/UX: no source material — lens skipped during curation").
 
 ### 4.3 — Conflict Detection Gate
 

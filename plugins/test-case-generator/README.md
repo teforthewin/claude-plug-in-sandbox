@@ -1,22 +1,50 @@
 # test-case-generator
 
-> **Maintained by**: Test Enablement — Technology  
-> **Category**: testing  
+> **Maintained by**: Test Enablement — Technology
+> **Category**: testing
 > **Maturity**: community
 
 ## What it does
 
-Converts business requirements, acceptance criteria, technical specs, or source code into structured, domain-organized test scenario documents using **5 parallel testing strategies simultaneously**:
+Converts business requirements, technical specs, UI docs, source code, or compliance documents into **domain-organized, tagged test scenario documents** — through a multi-dimensional analysis pipeline followed by 5 parallel testing strategies.
+
+The plugin produces **technology-agnostic Markdown** — no code, no selectors, no endpoints. Any tester (manual or automated) can read them, and they are ready for downstream automated test code generation.
+
+---
+
+## Workflow
+
+```mermaid
+flowchart TD
+    U([User]) --> P0[Phase 0: 7-question gate]
+    P0 --> P1
+    subgraph P1["Phase 1 — Knowledge Extraction"]
+        SC[source-curator<br/>raw inputs → MD files by domain + routing manifest] --> A[Active analysts only<br/>functional / technical / ui-ux / quality-compliance<br/>in parallel]
+        A --> CF{Conflicts?}
+        CF -->|Yes| HALT[Halt + ask user] --> A
+        CF -->|No| SS[skill-synthesizer → Skill Store]
+    end
+    P1 --> P2[Phase 2: Dispatch selected strategies in parallel<br/>component / integration / edge / limit / cross<br/>→ scenario-designer]
+    P2 --> P3[Phase 3: Merge, dedupe, re-sequence]
+    P3 -->|gap| P2
+    P3 --> P4[Phase 4: scenario-coverage-checker]
+    P4 -->|FAIL/PARTIAL| P2
+    P4 -->|PASS| P5[Phase 5: Write docs/test-cases/...md + deliver] --> U
+```
+
+**Phase 1** starts with `source-curator`, which ingests raw heterogeneous inputs (PDFs, OpenAPI, wireframes, code, compliance docs) and emits **AI-optimized Markdown files organized by domain** (functional / technical / ui-ux / non-functional) plus a routing manifest. Only the analyst lenses that have material to analyze are then dispatched in parallel. A `skill-synthesizer` finally produces a **Skill Store** of Atomic Testable Units. Conflicts between sources halt the process and surface to the user.
+
+**Phase 2** dispatches only the testing strategies you select:
 
 | Strategy | Focus |
 |---|---|
 | **Component** | Individual units/entities in isolation |
 | **Integration** | Interactions between sub-systems and services |
 | **Edge Case** | Unusual, rare, or adversarial conditions |
-| **Limit Case** | Boundary and min/max values |
+| **Limit Case** | Boundary, min/max, empty/null values |
 | **Cross Case** | Combinatorial/pairwise parameter interactions |
 
-The plugin produces technology-agnostic Markdown test case documents — no code, no selectors, no endpoints. Any tester (manual or automated) can read them. They are also ready for automated test code generation tools.
+**Phase 3–4** dedupe redundant scenarios, merge multi-concern tests, and verify every acceptance criterion **and every NFR (Security, Performance, Compliance, Accessibility)** is covered.
 
 ---
 
@@ -30,75 +58,54 @@ The plugin produces technology-agnostic Markdown test case documents — no code
 
 ## Usage
 
-Once installed, invoke the test case generator via the agent:
+### Invoke the slash command
 
 ```
-Generate test cases for [story/feature/requirement]
+/test-case-generator
 ```
 
-Or more specifically:
+You can pass an optional argument:
 
 ```
-Generate test cases for this acceptance criteria: [paste AC text]
-Create test scenarios for the payment flow feature
-What should I test for this requirement: [description]
-Design test cases for story TE-123
+/test-case-generator TE-162 — Order creation flow
+/test-case-generator path/to/spec.pdf
+/test-case-generator https://confluence.example.com/page
 ```
 
-The agent will ask 7 clarifying questions (source material, channels, testing levels, coverage scope, domain context, system name, use cases), then dispatch all selected strategies in parallel.
+### Phase 0 — answer the 7 questions
+
+The orchestrator will not proceed until you answer:
+
+1. **Source material** — spec, OpenAPI, UI doc, code path, compliance doc, bug report
+2. **Channels** — API, Web, Mobile, Hybrid
+3. **Testing levels** — Component / Integration / Edge / Limit / Cross (or All)
+4. **Coverage scope** — happy path / +errors / full coverage
+5. **Domain & append mode** — business domain; extend an existing TC file?
+6. **System / EPIC** — for file routing (e.g. `parking-api`)
+7. **Use cases** — actor goals (or leave blank to derive)
+
+### Tips
+
+- **Multiple sources** (e.g. spec PDF + OpenAPI + UI mockup) — provide all of them; the four analysts will reconcile or surface conflicts.
+- **Append mode** — point the orchestrator at an existing `docs/test-cases/...md` file to enrich it without overwriting; existing TCs are detected and skipped.
+- **Non-English sources** — fine; analysts translate during extraction. All output is English.
+- **Iterate** — re-run with different testing levels or scopes against the same source; append mode keeps the document growing.
 
 ---
 
-## What you get
+## Output
 
 A structured Markdown document at `docs/test-cases/{system}/{story-id}-{slug}.md` containing:
 
-- **YAML frontmatter** with metadata (system, domain, story, channel, total tests, use cases, coverage)
-- **Test cases organized by** Story/Scenario → Use Case → Layer → TC
-- **Every TC includes**: ID, description, severity/category/domain/type tags, prerequisites, steps, assertions table, cleanup
-- **Coverage matrix** showing which strategies contributed to each test case
-- **Optimization report** showing how many raw scenarios were merged/deduplicated
-- **Quality checklist** confirming readiness for implementation
+- **YAML frontmatter** — system, domain, story, channel, total tests, use cases, AC coverage, NFR coverage, testing levels, append mode
+- **Test cases** organized as Story/Scenario → Use Case → Layer → TC
+- **Each TC** — ID, description, 4 mandatory tags, prerequisites, steps, assertions table, cleanup
+- **Coverage Matrix** — TC × use case × layer × domain × strategy × severity
+- **NFR Coverage Matrix** — every NFR ATU mapped to its TC(s)
+- **Optimization Report** — raw scenarios → after dedupe → after multi-concern merge
+- **Quality Checklist**
 
----
-
-## Agents included
-
-| Agent | Role |
-|---|---|
-| `test-case-generator` | Main orchestrator — runs the full 5-phase workflow |
-| `component-strategy` | Generates component isolation scenarios |
-| `integration-strategy` | Generates cross-service interaction scenarios |
-| `edge-case-strategy` | Generates unusual/adversarial condition scenarios |
-| `limit-case-strategy` | Generates boundary value scenarios |
-| `cross-case-strategy` | Generates combinatorial/pairwise scenarios |
-| `scenario-designer` | Writes the actual TC Markdown from strategy inputs |
-| `scenario-coverage-checker` | Validates that all ACs are covered by generated TCs |
-
----
-
-## Skills included
-
-| Skill | Purpose |
-|---|---|
-| `tag-system` | Defines the mandatory 4-category tag system: severity, category, domain, type |
-
----
-
-## Tag system
-
-Every test case produced by this plugin carries 4 mandatory tags:
-
-| Category | Values |
-|---|---|
-| **severity** | `smoke` / `mandatory` / `required` / `advisory` |
-| **category** | `api` / `web` / `mobile` |
-| **domain** | Custom per team (e.g. `payments`, `authentication`) |
-| **type** | `component-test` / `integration-test` / `edge-case` / `limit-case` / `cross-case` |
-
----
-
-## Output example
+### Example TC
 
 ```markdown
 ##### TC-TE-123-001: Create Order — valid input produces new order with status "created"
@@ -125,7 +132,57 @@ Every test case produced by this plugin carries 4 mandatory tags:
 
 ---
 
+## Tag system
+
+Every TC carries 4 mandatory tag categories. Additional `label:value` tags are allowed and preserved.
+
+| Category | Values |
+|---|---|
+| **severity** | `smoke` / `mandatory` / `required` / `advisory` |
+| **category** | `api` / `web` / `mobile` |
+| **domain** | Per team (e.g. `payments`, `authentication`, `security`, `accessibility`) |
+| **type** | `component-test` / `integration-test` / `edge-case` / `limit-case` / `cross-case` (comma-separated when a TC merges strategies) |
+
+See the [`tag-system`](skills/tag-system/) skill for full rules.
+
+---
+
+## Components
+
+### Slash command
+
+| Command | Purpose |
+|---|---|
+| [`/test-case-generator`](commands/test-case-generator.md) | Entry point — runs the full 6-phase orchestration |
+
+### Agents
+
+| Agent | Role |
+|---|---|
+| [`test-case-generator`](agents/test-case-generator.md) | Lead orchestrator — Phase 0 → 5 |
+| [`source-curator`](agents/source-curator.md) | Phase 1.0 — ingests raw inputs, emits domain-scoped Markdown files + routing manifest |
+| `functional-analyst` | Phase 1 — business logic, ACs, rules, state lifecycles |
+| `technical-architect` | Phase 1 — APIs, schemas, data models, dependencies |
+| `ui-ux-specialist` | Phase 1 — navigation, screens, validations, A11y |
+| `quality-compliance-agent` | Phase 1 — Security, Performance, Compliance, Reliability |
+| `skill-synthesizer` | Phase 1 — produces the Skill Store from the 4 lenses |
+| `component-strategy` | Phase 2 — single-unit isolation tests |
+| `integration-strategy` | Phase 2 — cross-boundary interaction tests |
+| `edge-case-strategy` | Phase 2 — unusual/adversarial conditions |
+| `limit-case-strategy` | Phase 2 — boundary values |
+| `cross-case-strategy` | Phase 2 — combinatorial/pairwise tests |
+| `scenario-designer` | Phase 2 — converts strategy outputs into TC Markdown |
+| `scenario-coverage-checker` | Phase 4 — PASS/FAIL/PARTIAL audit vs Skill Store + ACs |
+
+### Skills
+
+| Skill | Purpose |
+|---|---|
+| [`tag-system`](skills/tag-system/) | Mandatory 4-category tag rules and examples |
+| [`git-standup`](skills/git-standup/) | Helper skill for reviewing recent test-related changes |
+
+---
+
 ## Source
 
-Full framework and documentation:  
 [easyparkgroup/claude-code-marketplace](https://github.com/easyparkgroup/claude-code-marketplace)
