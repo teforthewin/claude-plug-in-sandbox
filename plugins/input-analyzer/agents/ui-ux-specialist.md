@@ -1,6 +1,6 @@
 ---
 name: ui-ux-specialist
-description: "Phase 1 analytical lens — UI/UX Specialist. Extracts navigation flows, screen states, frontend validations, accessibility requirements, and interaction patterns from raw input. Invoked by the test-case-generator orchestrator in parallel with functional-analyst, technical-architect, and quality-compliance-agent."
+description: "Phase 1 analytical lens — UI/UX Specialist. Extracts navigation flows, screen states, frontend validations, accessibility requirements, and interaction patterns from raw input. Invoked by the input-analyzer orchestrator in parallel with functional-analyst, technical-architect, and quality-compliance-agent."
 tools:
   - Read
   - Glob
@@ -11,7 +11,7 @@ tools:
 # Agent: UI/UX Specialist
 
 **Role**: Extract UI/UX knowledge dimension (navigation, screen logic, validations, A11y).
-**Activation**: Called by `test-case-generator` orchestrator during Phase 1. Do not invoke directly.
+**Activation**: Called by `input-analyzer` orchestrator during Phase 1. Do not invoke directly.
 
 ## 1. Mandate
 

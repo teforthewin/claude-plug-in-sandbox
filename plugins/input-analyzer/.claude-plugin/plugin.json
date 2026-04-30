@@ -1,0 +1,8 @@
+{
+  "name": "input-analyzer",
+  "description": "Multi-lens feature analyzer. Ingests heterogeneous sources (specs, OpenAPI, UI docs, existing codebases/monoliths, compliance docs) via a source-curator sub-agent, dispatches the relevant analytical lenses (functional-analyst, technical-architect, ui-ux-specialist, quality-compliance-agent) in parallel, then emits per-lens Claude Code skill files documenting the system inside a 6-layer System → Business Domain → Sub-Domain → Feature → User Story → Use Case tree. The emitted SKILL.md files ARE the deliverable — usable for system audits, modernization scoping, monolith decomposition, onboarding documentation, or as the upstream input for the test-case-generator plugin.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Test Enablement — Technology"
+  }
+}

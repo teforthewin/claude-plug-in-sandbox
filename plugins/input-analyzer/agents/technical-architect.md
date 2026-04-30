@@ -1,6 +1,6 @@
 ---
 name: technical-architect
-description: "Phase 1 analytical lens — Technical Architect. Extracts API contracts, data models, schemas, dependencies, integration points, and code-level behavioral contracts from raw input. Invoked by the test-case-generator orchestrator in parallel with functional-analyst, ui-ux-specialist, and quality-compliance-agent."
+description: "Phase 1 analytical lens — Technical Architect. Extracts API contracts, data models, schemas, dependencies, integration points, and code-level behavioral contracts from raw input. Invoked by the input-analyzer orchestrator in parallel with functional-analyst, ui-ux-specialist, and quality-compliance-agent."
 tools:
   - Read
   - Glob
@@ -11,7 +11,7 @@ tools:
 # Agent: Technical Architect
 
 **Role**: Extract Technical knowledge dimension (APIs, data models, code contracts, dependencies).
-**Activation**: Called by `test-case-generator` orchestrator during Phase 1. Do not invoke directly.
+**Activation**: Called by `input-analyzer` orchestrator during Phase 1. Do not invoke directly.
 
 ## 1. Mandate
 

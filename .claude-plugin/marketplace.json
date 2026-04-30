@@ -10,8 +10,15 @@
   },
   "plugins": [
     {
+      "name": "input-analyzer",
+      "description": "Multi-lens feature analyzer: ingests heterogeneous sources (specs, OpenAPI, UI docs, code, compliance docs) and emits per-lens Claude Code SKILL.md files (functional / technical / ui / nfr / glossary) inside a 6-layer System → Business Domain → Sub-Domain → Feature → User Story → Use Case tree. Use standalone for system audits, modernization scoping, monolith decomposition, onboarding documentation, or as the upstream input for the test-case-generator plugin.",
+      "source": "./plugins/input-analyzer",
+      "tags": ["community", "test-enablement", "analysis", "feature-extraction", "modernization", "documentation"],
+      "category": "analysis"
+    },
+    {
       "name": "test-case-generator",
-      "description": "Multi-strategy test case generator: converts business requirements or specs into domain-organized, tagged Markdown test scenario documents using 5 parallel testing strategies (Component, Integration, Edge Case, Limit Case, Cross Case).",
+      "description": "Multi-strategy test case generator: reads per-lens SKILL.md files (produced by the input-analyzer plugin) and dispatches 5 parallel testing strategies (Component, Integration, Edge Case, Limit Case, Cross Case) to produce domain-organized, tagged Markdown test scenario documents.",
       "source": "./plugins/test-case-generator",
       "tags": ["community", "test-enablement", "testing", "scenario-design"],
       "category": "testing"

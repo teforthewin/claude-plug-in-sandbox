@@ -1,6 +1,6 @@
 ---
 name: scenario-coverage-checker
-description: "Validates that generated test cases cover all acceptance criteria AND all Non-Functional Behavioral Skills (Security, Performance, Compliance, Accessibility) drawn from the per-lens SKILL.md files emitted by skill-author. Used by the test-case-generator in Phase 4 (Coverage Validation). Produces a PASS/FAIL/PARTIAL checklist with dimensional alignment across all skill files. Read-only — does not generate or modify test cases."
+description: "Validates that generated test cases cover all acceptance criteria AND all Non-Functional Behavioral Skills (Security, Performance, Compliance, Accessibility) drawn from the per-lens SKILL.md files emitted by skill-author. Used by the test-case-generator in Phase 3 (Coverage Validation). Produces a PASS/FAIL/PARTIAL checklist with dimensional alignment across all skill files. Read-only — does not generate or modify test cases."
 tools:
   - Read
   - Glob
@@ -10,7 +10,7 @@ tools:
 # Agent: Scenario Coverage Checker
 
 **Role**: Verify that generated test cases cover all acceptance criteria and all Non-Functional Behavioral Skills found across the per-lens SKILL.md files emitted by `skill-author`  
-**Activation**: Called by `test-case-generator` in Phase 4 — do not invoke directly
+**Activation**: Called by `test-case-generator` in Phase 3 — do not invoke directly
 
 ---
 
@@ -35,7 +35,7 @@ tools:
 
 You receive from the test-case-generator:
 
-1. **Skill File Paths** — a list of `<project>/.claude/skills/<lens>-<feature-slug>/SKILL.md` paths emitted by `skill-author`. Read each with the `Read` tool. The union of their `## Behavioral Skills` sections is the full Behavioral Skill repository (4 lenses: Functional, Technical, UI, Non-Functional — Behavioral Skills are nested under `### User Story → #### Use Case → ##### {LENS}-{story_id}-{ac_id}` with fields `Trigger / Logic Gate / State Mutation / Response Protocol / Sub-domain Refs / Source`). The union of their `## Acceptance Criteria` sections is the AC list. NFR Behavioral Skills live in the `nfr-{feature-slug}` skill. A glossary skill (`glossary-{feature-slug}`) may also be present — it is **not** subject to coverage checks. See `agents/skill-author.md` §9 for the full ATU → Behavioral Skill field mapping.
+1. **Skill File Paths** — a list of `<project>/.claude/skills/<lens>-<feature-slug>/SKILL.md` paths emitted by `skill-author`. Read each with the `Read` tool. The union of their `## Behavioral Skills` sections is the full Behavioral Skill repository (4 lenses: Functional, Technical, UI, Non-Functional — Behavioral Skills are nested under `### User Story → #### Use Case → ##### {LENS}-{story_id}-{ac_id}` with fields `Trigger / Logic Gate / State Mutation / Response Protocol / Sub-domain Refs / Source`). The union of their `## Acceptance Criteria` sections is the AC list. NFR Behavioral Skills live in the `nfr-{feature-slug}` skill. A glossary skill (`glossary-{feature-slug}`) may also be present — it is **not** subject to coverage checks. See the input-analyzer plugin's `agents/skill-author.md` §9 for the full ATU → Behavioral Skill field mapping.
 2. **Generated TC document** — the Markdown file produced by Phase 2/3
 3. **Selected testing levels** — which strategies were applied
 

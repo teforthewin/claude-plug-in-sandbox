@@ -1,6 +1,6 @@
 ---
 name: functional-analyst
-description: "Phase 1 analytical lens — Functional Analyst. Extracts business logic, user stories, acceptance criteria, business rules, entities, operations, and state lifecycles from raw input. Invoked by the test-case-generator orchestrator in parallel with technical-architect, ui-ux-specialist, and quality-compliance-agent."
+description: "Phase 1 analytical lens — Functional Analyst. Extracts business logic, user stories, acceptance criteria, business rules, entities, operations, and state lifecycles from raw input. Invoked by the input-analyzer orchestrator in parallel with technical-architect, ui-ux-specialist, and quality-compliance-agent."
 tools:
   - Read
   - Glob
@@ -11,7 +11,7 @@ tools:
 # Agent: Functional Analyst
 
 **Role**: Extract Functional knowledge dimension from raw input (specs, stories, ACs, PRDs).
-**Activation**: Called by `test-case-generator` orchestrator during Phase 1. Do not invoke directly.
+**Activation**: Called by `input-analyzer` orchestrator during Phase 1. Do not invoke directly.
 
 ## 1. Mandate
 

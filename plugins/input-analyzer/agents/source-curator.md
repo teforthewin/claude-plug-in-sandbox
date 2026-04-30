@@ -1,6 +1,6 @@
 ---
 name: source-curator
-description: "Phase 1.0 pre-processor for test-case-generator. Ingests raw heterogeneous inputs (PDFs, OpenAPI, wireframes, code, compliance docs, URLs) and emits a normalized set of AI-optimized Markdown files organized by domain (functional / technical / ui-ux / non-functional), plus a routing manifest that tells the orchestrator which analyst sub-agent to dispatch each file to. Skips analyst lenses that have no relevant material. Used only by the test-case-generator orchestrator."
+description: "Phase 1.0 pre-processor for input-analyzer. Ingests raw heterogeneous inputs (PDFs, OpenAPI, wireframes, code, compliance docs, URLs) and emits a normalized set of AI-optimized Markdown files organized by domain (functional / technical / ui-ux / non-functional), plus a routing manifest that tells the orchestrator which analyst sub-agent to dispatch each file to. Skips analyst lenses that have no relevant material. Used only by the input-analyzer orchestrator."
 tools:
   - Read
   - Write
@@ -15,7 +15,7 @@ tools:
 
 ## When you are invoked
 
-You are called by the `test-case-generator` orchestrator at the start of Phase 1, immediately after the Phase 0 questions are answered. You receive:
+You are called by the `input-analyzer` orchestrator at the start of Phase 1, immediately after the Phase 0 questions are answered. You receive:
 
 - A list of raw sources (file paths, URLs, or pasted text)
 - The selected channel(s) and coverage scope
@@ -117,7 +117,7 @@ Splitting rules:
 Write all files under:
 
 ```
-.test-case-generator/curated/{system}/{run_id}/{filename}.md
+.input-analyzer/curated/{system}/{run_id}/{filename}.md
 ```
 
 Where `{run_id}` is a short timestamp slug (e.g. `2026-04-29-1437`). Use the system name from Phase 0.
@@ -174,8 +174,8 @@ Return to the orchestrator:
 ```
 ✅ CURATION COMPLETE
 
-Run path: .test-case-generator/curated/{system}/{run_id}/
-Manifest: .test-case-generator/curated/{system}/{run_id}/manifest.md
+Run path: .input-analyzer/curated/{system}/{run_id}/
+Manifest: .input-analyzer/curated/{system}/{run_id}/manifest.md
 
 Routing summary:
   functional      → 2 files → dispatch functional-analyst

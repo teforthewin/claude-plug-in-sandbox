@@ -1,6 +1,6 @@
 ---
 name: quality-compliance-agent
-description: "Phase 1 analytical lens — Quality & Compliance Agent. Extracts non-functional requirements: security, performance, reliability, accessibility, GDPR/legal, and compliance constraints from raw input. Invoked by the test-case-generator orchestrator in parallel with functional-analyst, technical-architect, and ui-ux-specialist."
+description: "Phase 1 analytical lens — Quality & Compliance Agent. Extracts non-functional requirements: security, performance, reliability, accessibility, GDPR/legal, and compliance constraints from raw input. Invoked by the input-analyzer orchestrator in parallel with functional-analyst, technical-architect, and ui-ux-specialist."
 tools:
   - Read
   - Glob
@@ -11,7 +11,7 @@ tools:
 # Agent: Quality & Compliance Agent
 
 **Role**: Extract Non-Functional knowledge dimension (Security, Performance, Compliance, Reliability, Accessibility).
-**Activation**: Called by `test-case-generator` orchestrator during Phase 1. Do not invoke directly.
+**Activation**: Called by `input-analyzer` orchestrator during Phase 1. Do not invoke directly.
 
 ## 1. Mandate
 

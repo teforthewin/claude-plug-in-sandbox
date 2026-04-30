@@ -1,7 +1,7 @@
 {
   "name": "test-case-generator",
-  "description": "Two-phase feature analysis and test case generator. Phase 1 extracts features, business flows, entities, contracts, and NFRs from heterogeneous sources (specs, OpenAPI, UI docs, existing codebases/monoliths, compliance docs) and emits per-domain Claude Code skill files documenting the system inside a 6-layer System → Business Domain → Sub-Domain → Feature → User Story → Use Case tree — runnable standalone as the analysis step for system audits, modernization scoping, monolith decomposition, or onboarding. Phase 2 (optional) reads those skills and produces domain-organized, tagged Markdown test scenarios via 5 parallel strategies (Component, Integration, Edge Case, Limit Case, Cross Case).",
-  "version": "1.4.1",
+  "description": "Multi-strategy test case generator. Reads per-lens Claude Code SKILL.md files (functional / technical / ui / nfr / glossary) — produced upstream by the `input-analyzer` plugin or authored by hand — and dispatches 5 parallel testing strategies (Component, Integration, Edge Case, Limit Case, Cross Case) to produce validated, tagged, domain-grouped Markdown test scenario documents. Supports append-to-existing mode. If no skills are present for the requested feature, offers a soft fallback that points the user to `/input-analyzer`.",
+  "version": "2.0.0",
   "author": {
     "name": "Test Enablement — Technology"
   }
