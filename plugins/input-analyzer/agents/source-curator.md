@@ -7,6 +7,7 @@ tools:
   - Glob
   - Grep
   - WebFetch
+  - Bash
 ---
 
 # Agent: Source Curator
