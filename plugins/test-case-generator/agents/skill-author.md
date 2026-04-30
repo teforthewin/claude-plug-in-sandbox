@@ -181,6 +181,17 @@ Lens prefix is FUNC | TECH | UI | NFR. Behavioral Skill IDs are stable across re
 
 #### Use Case: {use case name} ({happy | alternative | error} path)
 
+```gherkin
+Scenario: {use case name}
+  Given {precondition / initial system state — from Feature Knowledge}
+  And {additional precondition, if any}
+  When {action described by the Trigger of the primary Behavioral Skill}
+  Then {outcome of the first AC — from Logic Gate + Response Protocol}
+  And {outcome of additional ACs}
+```
+
+<!-- Behavioral Skills below decompose this Scenario into one atomic unit per AC (each Then/And clause maps to one BS entry). -->
+
 ##### {LENS}-{story_id}-{ac_id}: {short name}
 - **Trigger**: {the technical or functional event starting the action — user click, API call, scheduled job, message received}
 - **Logic Gate (AC)**: {the specific rule to validate, in pseudocode-friendly form, e.g. `if balance < total_price then REJECT`}
@@ -347,6 +358,7 @@ Before returning:
 - [ ] Every emitted SKILL.md exists on disk at the expected path (`<lens>-<feature-slug>` naming, lens-first).
 - [ ] Every AC is mapped to ≥ 1 Behavioral Skill in at least one skill.
 - [ ] Every NFR finding (Sec/Perf/Comp/Rel/A11y) is mapped to ≥ 1 NFR Behavioral Skill.
+- [ ] Every Use Case has a Gherkin `Scenario:` block capturing the full Given/When/Then for that use case.
 - [ ] Every Behavioral Skill has all five required fields: Trigger, Logic Gate, State Mutation, Response Protocol, Source.
 - [ ] One Behavioral Skill per AC — no compounded business rules in a single skill.
 - [ ] `## Tree Location` breadcrumb is present and complete (or marked `[INCOMPLETE SPEC]`) on every non-glossary skill.

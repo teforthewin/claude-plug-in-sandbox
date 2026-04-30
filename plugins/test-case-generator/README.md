@@ -6,9 +6,19 @@
 
 ## What it does
 
-Converts business requirements, technical specs, UI docs, source code, or compliance documents into **domain-organized, tagged test scenario documents** — through a multi-dimensional analysis pipeline followed by 5 parallel testing strategies.
+A **two-phase agent** built around a multi-dimensional knowledge-extraction pipeline.
 
-The plugin produces **technology-agnostic Markdown** — no code, no selectors, no endpoints. Any tester (manual or automated) can read them, and they are ready for downstream automated test code generation.
+**Phase 1 — Feature Analysis (the analysis step).** Ingests heterogeneous sources — business requirements, technical specs, OpenAPI, UI docs, **existing codebases or monoliths under modernization**, compliance/legal documents — and emits **per-domain Claude Code skill files** describing the system's features, business flows, entities, contracts, and NFRs inside a 6-layer tree (System → Business Domain → Sub-Domain → Feature → User Story → Use Case). Use Cases decompose into atomic *Behavioral Skills* (Trigger / Logic Gate / State Mutation / Response Protocol). These skills are reusable feature documentation for the whole team.
+
+**Phase 2 — Test Case Generation (optional).** Reads the skills and produces **domain-organized, tagged test scenario documents** via 5 parallel testing strategies. Output is technology-agnostic Markdown — no code, no selectors, no endpoints.
+
+You choose the output mode at Phase 0 Q3:
+
+| Output mode | What you get | Typical use |
+|---|---|---|
+| **Analysis only** | Per-domain SKILL.md files + a domain index. **No test cases.** | Monolith decomposition, modernization scoping, system audits, onboarding docs, producing a feature catalog from an existing codebase, mapping legacy → new microservices |
+| **Test cases only** | Domain × scope test scenario suite (assumes skills already exist) | Re-running test generation after manually editing skills |
+| **Both** (default) | Both artifacts | Greenfield feature with spec + tests |
 
 ---
 
@@ -40,11 +50,16 @@ flowchart TD
         SA --> SK_G[/skills/glossary-&lt;feature&gt;/SKILL.md/]
     end
 
-    SK_F --> P2IN
-    SK_T --> P2IN
-    SK_U --> P2IN
-    SK_N --> P2IN
-    SK_G -.glossary not consumed by strategies.-> P2IN
+    SK_F --> MODE{Output mode<br/>from Phase 0 Q3}
+    SK_T --> MODE
+    SK_U --> MODE
+    SK_N --> MODE
+    SK_G --> MODE
+
+    MODE -->|Analysis only| ANALYSIS_OUT[/docs/analysis/&lt;system&gt;/&lt;feature&gt;/index.md<br/>+ already-emitted SKILL.md files/]
+    ANALYSIS_OUT --> U_END([STOP — deliver to user])
+
+    MODE -->|Test cases / Both| P2IN
 
     subgraph P2["Phase 2 — Strategy Dispatch (parallel)"]
         direction TB
@@ -120,13 +135,29 @@ You can pass an optional argument:
 
 The orchestrator will not proceed until you answer:
 
-1. **Source material** — spec, OpenAPI, UI doc, code path, compliance doc, bug report
+1. **Source material** — spec, OpenAPI, UI doc, code path, repo path (existing system / monolith), compliance doc, bug report
 2. **Channels** — API, Web, Mobile, Hybrid
-3. **Testing levels** — Component / Integration / Edge / Limit / Cross (or All)
+3. **Output mode & testing levels** —
+   - **Analysis only** → emit per-domain SKILL.md feature docs and stop (no testing levels needed)
+   - **Test cases only** or **Both** → also pick from Component / Integration / Edge / Limit / Cross (or All)
 4. **Coverage scope** — happy path / +errors / full coverage
 5. **Domain & append mode** — business domain; extend an existing TC file?
-6. **System / EPIC** — for file routing (e.g. `parking-api`)
+6. **System / EPIC** — for file routing (e.g. `parking-api`, `epic-monolith`, `contracts-service`)
 7. **Use cases** — actor goals (or leave blank to derive)
+
+### Analysis-only example
+
+```
+/test-case-generator analysis: ~/repos/epic-monolith
+```
+
+Phase 0 Q3 → "Analysis only". The plugin will:
+1. `source-curator` reads the codebase / spec inputs and routes per lens.
+2. Analysts extract features, business flows, entities, NFRs by domain.
+3. `skill-author` writes one SKILL.md per (lens × feature) into `<project>/.claude/skills/`.
+4. Phase 5 §8.5 writes `docs/analysis/<system>/<feature>/index.md` summarizing the domains, business flows, and skill files emitted — **then stops**.
+
+You can later run `/test-case-generator` again with mode "Test cases only" to generate scenarios from those skills without re-analyzing.
 
 ### Tips
 
@@ -174,11 +205,11 @@ docs/test-cases/{system}/{story-id}-{slug}/
 - **Scope files** group their TCs by use case. Empty scope files are not emitted.
 - A TC merged across multiple strategies lives in its primary scope file and is cross-referenced from the secondary one.
 
-### Standard TC template (5 fields, mandatory)
+### Standard TC template (mandatory)
 
-Every TC, in every file, follows this exact template — no extra sections, no missing sections:
+Every TC, in every file, follows this exact template — four content sections plus a tags line:
 
-```markdown
+````markdown
 ### TC-TE-123-001
 
 **Title**: Create order with valid input produces a new order in "created" state
@@ -195,17 +226,16 @@ Every TC, in every file, follows this exact template — no extra sections, no m
 | Quantity | 1 | Within min/max |
 | Post-test cleanup | Cancel + delete the test order | Required |
 
-**Steps**:
-1. User submits an order with the product id and quantity
-2. System processes the order request
-
-**Acceptance criteria**:
-| Criterion | Expected Value | Type |
-|-----------|---------------|------|
-| Order status | "created" | state |
-| Order id returned | non-null UUID | schema |
-| Inventory updated | quantity decremented by the ordered amount | state |
+```gherkin
+Scenario: TC-TE-123-001 — Create order with valid input
+  Given the user is authenticated
+  And the product catalog contains the product with stock ≥ 1
+  When the user submits an order with quantity 1 for that product
+  Then the order is created with status "created"
+  And the order id returned is a non-null UUID
+  And the inventory is decremented by the ordered quantity
 ```
+````
 
 ---
 

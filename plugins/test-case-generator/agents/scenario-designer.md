@@ -29,7 +29,7 @@ You are the **Scenario Designer**. Your sole responsibility is to translate busi
 **Core Principle**: BUSINESS-FIRST, TECHNOLOGY-AGNOSTIC — Write test cases that any tester (manual or automated) can understand, regardless of tech stack.
 
 **Mandatory Self-Check**: After every generation, verify:
-- [ ] Every TC has: ID, title, description, tags (all 4 categories), prerequisites, steps, assert, cleanup
+- [ ] Every TC has: ID, title, description, tags (all 4 categories), inputs table, Gherkin scenario block
 - [ ] No implementation details (no code, no selectors, no endpoints)
 - [ ] All TCs are technology-agnostic
 - [ ] Positive and negative paths covered for each critical use case
@@ -64,11 +64,11 @@ You are the **Scenario Designer**. Your sole responsibility is to translate busi
 Every TC MUST follow this structure exactly. TCs are organized in the document as:
 `Story / Business Scenario → Use Case → Layer → TC`
 
-### Standard 5-field template (MANDATORY, in this order)
+### Standard TC template with Gherkin scenario (MANDATORY)
 
-Every TC must use exactly these five sections, in this order: **Title → Test description → Inputs → Steps → Acceptance criteria**. Tags appear between Title and Inputs as a single line; they are not a section. Do not add extra sections (no separate Prerequisites, Assert, Cleanup, Edge Cases, or Negative Tests blocks — fold those into Inputs / Acceptance criteria / new TCs as appropriate).
+Every TC must use exactly these four content sections, in this order: **Title → Test description → Inputs → Scenario**. Tags appear between Title and Inputs as a single line; they are not a section. The `Scenario:` block replaces separate Steps and Acceptance criteria — it captures preconditions (`Given`), the action (`When`), and assertions (`Then`/`And`/`But`) in Gherkin syntax. Do not add extra sections (no separate Steps / Acceptance criteria / Prerequisites / Assert / Cleanup blocks).
 
-```markdown
+````markdown
 ### TC-{story-id}-{NNN}
 
 **Title**: {short, action-oriented title — one line, what the test does}
@@ -85,25 +85,27 @@ Every TC must use exactly these five sections, in this order: **Title → Test d
 | {param or precondition} | {value, boundary, or initial state} | {why this value / source} |
 | Post-test cleanup | {what must be torn down} | {only if test creates resources} |
 
-> Use the Inputs table for parameters, initial system state, preconditions, and cleanup expectations. Negative-test inputs (invalid values, missing auth, etc.) belong here.
+> Use the Inputs table for concrete parameter values, boundary values, and cleanup expectations. `Given` steps in the Scenario block reference these values by name. Negative-test inputs (invalid values, missing auth, etc.) belong here too.
 
-**Steps**:
-1. {actor + observable action — no code, no selectors, no endpoints}
-2. {next action}
-
-**Acceptance criteria**:
-| Criterion | Expected Value | Type |
-|-----------|---------------|------|
-| {what must be true after the steps} | {expected outcome} | {status \| schema \| state \| log \| metric} |
+```gherkin
+Scenario: TC-{story-id}-{NNN} — {title}
+  Given {initial system state / precondition — references Inputs table by name}
+  And {additional precondition, if any}
+  When {actor performs the action — no code, no selectors, no endpoints}
+  And {additional action step, if any}
+  Then {expected outcome — first assertion}
+  And {expected outcome — additional assertion}
+  But {negative / exception assertion, if applicable}
 ```
+````
 
-> **Acceptance criteria types**: `status` (response/return code), `schema` (response body or data structure), `state` (system / DB / entity state), `log` (structured log entry), `metric` (performance/SLA — latency, throughput, error rate)
+> **Gherkin keywords**: `Given` = preconditions and initial state; `When` = the single action under test (one per Scenario); `Then`/`And` = assertions of what must be true after the action; `But` = sparingly, for a negative assertion within an otherwise positive scenario. Assert types: `state` (entity / DB change), `schema` (response body / data structure), `status` (return code), `log` (structured log entry), `metric` (latency / throughput / SLA).
 
 ### Document-Level Structure (within a single scope file)
 
 The orchestrator places each TC into a file at `docs/test-cases/{system}/{story-id}-{slug}/{domain}/{scope}.md`. Inside that file, group TCs by use case:
 
-```markdown
+````markdown
 # {System} | {Domain} | {Scope}
 
 ## Use Case: {use-case-name}
@@ -113,8 +115,12 @@ The orchestrator places each TC into a file at `docs/test-cases/{system}/{story-
 **Test description**: ...
 **Tags**: ...
 **Inputs**: ...
-**Steps**: ...
-**Acceptance criteria**: ...
+```gherkin
+Scenario: TC-{story-id}-001 — ...
+  Given ...
+  When ...
+  Then ...
+```
 
 ---
 
@@ -123,7 +129,7 @@ The orchestrator places each TC into a file at `docs/test-cases/{system}/{story-
 
 ## Use Case: {use-case-name-2}
 ...
-```
+````
 
 Do not write the `index.md` or the file frontmatter yourself — the orchestrator owns those. Return your TCs as a flat list with each TC carrying its `domain` and primary `scope` so the orchestrator can route them.
 
@@ -193,10 +199,12 @@ For each critical path:
 
 Before returning scenarios, verify:
 
-### Structural Quality (5-field template)
-- [ ] Every TC has, in order: **Title**, **Test description**, **Inputs**, **Steps**, **Acceptance criteria**
+### Structural Quality (Gherkin TC template)
+- [ ] Every TC has, in order: **Title**, **Test description**, **Inputs**, **Scenario** (Gherkin)
 - [ ] Tags line present between Title and Inputs
-- [ ] No legacy sections (no separate Description / Prerequisites / Assert / Cleanup blocks — folded into the 5 fields)
+- [ ] No legacy sections (no separate Steps / Acceptance criteria / Prerequisites / Assert / Cleanup blocks)
+- [ ] Gherkin `Scenario:` block is present and uses `Given/When/Then/And/But` keywords correctly
+- [ ] `Given` captures preconditions; exactly one `When` captures the action; `Then/And` capture assertions
 - [ ] Every TC carries `domain` and primary `scope` so the orchestrator can route to `{domain}/{scope}.md`
 - [ ] TC IDs are sequential within the run
 - [ ] All 4 tag categories present on every TC (severity, category, domain, type)
@@ -208,8 +216,8 @@ Before returning scenarios, verify:
 
 ### Business Quality
 - [ ] **Test description** covers BOTH the business meaning AND the technical behavior under test
-- [ ] **Inputs** include preconditions, initial state, and cleanup expectations (when applicable)
-- [ ] **Acceptance criteria** are tabular and measurable, with assertion type per row
+- [ ] **Inputs** include concrete parameter values, boundary values, and cleanup expectations (when applicable)
+- [ ] **Scenario** `Then/And` clauses are specific and measurable assertions
 - [ ] Positive and negative paths covered
 - [ ] Edge cases documented
 - [ ] NFR Behavioral Skills from input are represented (security, performance, compliance, accessibility)
