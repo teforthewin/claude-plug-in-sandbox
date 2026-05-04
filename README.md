@@ -1,2 +1,2 @@
-# test-case-generator-sandbox
-Sandbox marketplace to test the test-case-generator Claude Code plugin
+# tet-sandbox-marketplace
+Sandbox marketplace for the Test Enablement Team (TET) Claude Code plugins
