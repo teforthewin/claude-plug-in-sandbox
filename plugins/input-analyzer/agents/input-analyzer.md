@@ -179,19 +179,55 @@ After all dispatched analyst sub-agents return, compare their findings:
 
 The following conflicts were found across input sources:
 
+Conflict 1: {short description}
+Conflict 2: {short description}
+...
+
+```
+Then, for each conflict :
+```
 Conflict 1:
   Source A (Functional Spec): {quote}
   Source B (Technical Spec): {quote}
   Impact: {affected entities/operations}
 
-Conflict 2: ...
-
-→ Please provide a decision for each conflict before I continue.
+→ Your decision ?
 ```
 
 **Do not proceed until the user resolves all conflicts.** After resolution, re-dispatch any analyst whose input changed.
 
-### 4.4 — Skill Author Sub-Agent → Per-Lens Claude Code Skills
+### 4.4 — Incompletion Detection Gate
+
+After all dispatched analyst sub-agents return, check their findings:
+
+**Check for**:
+- Unspecified content (e.g., An "If" statement, should have "Then" AND "Else")
+- Any content that cannot be linked to the rest (e.g., A comment in Jira card that could be just a notification from a bot)
+
+**If incompletions found**:
+```
+⚠️ INCOMPLETION DETECTED — PROCESS HALTED
+
+The following incompletions were found :
+
+Incompletion 1: {short description}
+Incompletion 2: {short description}
+...
+
+```
+Then, for each incompletion :
+```
+Incompletion 1:
+  Source: {quote}
+  Missing information: {description of what is missing}
+  Impact: {affected entities/operations}
+
+→ Please provide additional information.
+```
+
+**Do not proceed until the user resolves all incompletion.** After resolution, re-dispatch any analyst whose input changed.
+
+### 4.5 — Skill Author Sub-Agent → Per-Lens Claude Code Skills
 
 After conflict resolution, delegate to the `skill-author` sub-agent. Pass it the analyst findings blocks plus the feature metadata, including the **6-layer tree** coordinates (system, business_domain, sub_domain) and the user-story / use-case structure extracted by `functional-analyst`. It writes **one Claude Code skill per non-empty lens** (functional / technical / ui / nfr / glossary) into the user's project under `.claude/skills/`, and returns a list of skill paths.
 
