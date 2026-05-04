@@ -1,0 +1,8 @@
+{
+  "name": "tet-atf-knowledge",
+  "description": "Knowledge bundle for the TET-ATF (Test Enablement Team Automated Test Framework) skeleton. Packages 14 independently-activating skills covering framework architecture, layer rules, tag system, utilities catalog, coding standards, API/Web/Mobile patterns, test isolation, logging/reporting, security configuration, CI/CD pipelines, Kubernetes user secrets, and Playwright CLI. Skills activate only when their specific topic is relevant, keeping Claude's context as small as possible.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Test Enablement — Technology"
+  }
+}
