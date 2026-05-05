@@ -233,18 +233,7 @@ See the [`tag-system`](skills/tag-system/) skill for full rules.
 | [`tag-system`](skills/tag-system/) | Mandatory 4-category tag rules and examples |
 | [`git-standup`](skills/git-standup/) | Helper skill for reviewing recent test-related changes |
 
----
 
-## Migration from 1.x
-
-In 1.x, this plugin ran a "two-phase" pipeline (analysis → tests) with a Phase 0 mode toggle. In 2.0:
-
-- **Phase 1 (analysis) was extracted** into the `input-analyzer` plugin.
-- The Phase 0 mode toggle was removed; if you want analysis only, run `/input-analyzer`.
-- The "Test cases only" path is now the *only* path; skill files are now a hard input.
-- Soft fallback offers to run `/input-analyzer` when skills are missing — no breaking error.
-
----
 
 ## Source
 
