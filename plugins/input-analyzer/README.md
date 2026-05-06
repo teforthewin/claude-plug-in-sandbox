@@ -3,7 +3,22 @@
 > **Maintained by**: Test Enablement — Technology
 > **Category**: analysis
 > **Maturity**: community
-> **Version**: 1.0.0
+> **Version**: 1.1.0
+
+## Companion plugins (foundational vocabulary)
+
+This plugin **does not redefine** the specification vocabulary or the requirement-authoring rules — it relies on two companion knowledge plugins so every analyst lens, every emitted SKILL.md, and every downstream consumer (test-case-generator, coverage-checker) shares the same coordinate system.
+
+| Companion | What it provides | Used by |
+|---|---|---|
+| [`input-hierarchization`](../input-hierarchization) | The canonical concept dictionary (Functional Domain, Capability, Asset, Dataset, Feature, Process, Activity, Task, Golden Data) and the 6-level system hierarchization tree (Domain → Requirement → Process → Step → Feature → Use Case / Acceptance Criterion). Defines what each input fragment IS and where it BELONGS. | The orchestrator and **all four lens agents** classify and place every retained fragment against this vocabulary. |
+| [`ears`](../ears) | The five EARS patterns and the authoring/review checklist for requirement statements. | The **functional-analyst** validates every L2 (Requirement) finding against EARS and flags non-conformant statements as `needs-EARS-rewrite`. |
+
+Both companion plugins are **read-only knowledge bundles** — no commands, no agents, no side effects. Install them alongside `input-analyzer`. Their skills auto-trigger when the input-analyzer's agents reason about classification, hierarchy, or requirement quality.
+
+> Note: the two trees can read like they conflict — input-analyzer historically used `System → Business Domain → Sub-Domain → Feature → User Story → Use Case` while `input-hierarchization` uses `Domain → Requirement → Process → Step → Feature → Use Case`. They are **complementary views**: input-hierarchization is the *authoritative* concept layer; the input-analyzer's tree is a *delivery layout* for the emitted SKILL.md files. The orchestrator and analysts always classify against the input-hierarchization vocabulary first; the per-lens skill authoring then arranges the findings under the System/Domain/Sub-Domain/Feature/User-Story/Use-Case headings expected by `test-case-generator`.
+
+---
 
 ## What it does
 

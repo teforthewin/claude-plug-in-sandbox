@@ -1,0 +1,8 @@
+{
+  "name": "ears",
+  "description": "Read-only knowledge bundle for the Easy Approach to Requirements Syntax (EARS) — a lightweight set of five natural-language patterns (Ubiquitous, State-driven, Event-driven, Optional Feature, Unwanted Behaviour) plus a Complex composite that constrain natural language just enough to make requirements clear, concise, unambiguous, and testable. Activates whenever an agent must author, review, classify, or rewrite a requirement statement.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Test Enablement — Technology"
+  }
+}

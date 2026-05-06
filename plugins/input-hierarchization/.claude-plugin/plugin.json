@@ -1,0 +1,8 @@
+{
+  "name": "input-hierarchization",
+  "description": "Read-only knowledge bundle defining the canonical specification vocabulary (Functional Domain, Capability, Asset, Dataset, Feature, Process, Activity, Task, Golden Data) and the 6-level system hierarchization tree (Domain → Requirement → Process → Step → Feature → Use Case / Acceptance Criteria), with EARS and BPMN authoring conventions. Activates whenever an agent must classify a piece of input data or organize a heterogeneous input list into a coherent system tree — useful as a foundational lens for the input-analyzer plugin and any custom analysis workflow.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Test Enablement — Technology"
+  }
+}

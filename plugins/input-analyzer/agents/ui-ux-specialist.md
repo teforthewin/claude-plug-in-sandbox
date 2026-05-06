@@ -17,6 +17,10 @@ tools:
 
 You are one of four parallel analytical lenses on the same source material. Your lens is **Navigation & Interface Logic**. Output a structured UI findings block in English.
 
+## 1.1 Foundational Vocabulary (companion plugin)
+
+Anchor every finding to the canonical concept dictionary defined by the **`input-hierarchization`** skill (auto-loaded). UI flows describe *how* a user exercises an L5 **Feature** through one or more L6 **Use Cases**; screen states and transitions are evidence of L4 **Steps**. Bind your findings to these nodes via `traces-to:` references — do not invent Features or Use Cases. Frontend validations that mirror business rules must trace to the corresponding L2 **Requirement**. Provenance (`source`) is mandatory; unclassifiable fragments go to `unclassified` and are surfaced.
+
 ## 2. What to Extract
 
 - **User flows / screen transitions** ("Login → Dashboard → Settings").

@@ -11,7 +11,7 @@
   "plugins": [
     {
       "name": "input-analyzer",
-      "description": "Multi-lens feature analyzer: ingests heterogeneous sources (specs, OpenAPI, UI docs, code, compliance docs) and emits per-lens Claude Code SKILL.md files (functional / technical / ui / nfr / glossary) inside a 6-layer System → Business Domain → Sub-Domain → Feature → User Story → Use Case tree. Use standalone for system audits, modernization scoping, monolith decomposition, onboarding documentation, or as the upstream input for the test-case-generator plugin.",
+      "description": "Multi-lens feature analyzer: ingests heterogeneous sources (specs, OpenAPI, UI docs, code, compliance docs) and emits per-lens Claude Code SKILL.md files (functional / technical / ui / nfr / glossary) inside a 6-layer System → Business Domain → Sub-Domain → Feature → User Story → Use Case tree. Use standalone for system audits, modernization scoping, monolith decomposition, onboarding documentation, or as the upstream input for the test-case-generator plugin. Anchors all classification to the companion `input-hierarchization` plugin (canonical vocabulary + tree) and validates L2 Requirement statements with the companion `ears` plugin — install both alongside.",
       "source": "./plugins/input-analyzer",
       "tags": ["community", "test-enablement", "analysis", "feature-extraction", "modernization", "documentation"],
       "category": "analysis"
@@ -28,6 +28,20 @@
       "description": "Read-only knowledge bundle for the TET-ATF (Test Enablement Team Automated Test Framework) skeleton. Installs 14 context-activated skills covering framework architecture, layer rules, tag system, utils catalog, coding standards, API patterns, CI/CD, and more — so Claude knows all conventions and patterns when working inside any TET-ATF-based test repository.",
       "source": "./plugins/tet-atf-knowledge",
       "tags": ["community", "test-enablement", "knowledge", "atf", "framework", "standards"],
+      "category": "knowledge"
+    },
+    {
+      "name": "ears",
+      "description": "Read-only knowledge bundle for the Easy Approach to Requirements Syntax (EARS) — five natural-language patterns (Ubiquitous, State-driven, Event-driven, Optional Feature, Unwanted Behaviour) plus a Complex composite that constrain natural language just enough to make requirements clear, concise, unambiguous, and testable. Activates whenever an agent must author, review, classify, or rewrite a requirement statement. Authoring convention referenced by the input-hierarchization plugin's L2 Requirement layer.",
+      "source": "./plugins/ears",
+      "tags": ["community", "test-enablement", "knowledge", "requirements", "ears", "specification", "authoring"],
+      "category": "knowledge"
+    },
+    {
+      "name": "input-hierarchization",
+      "description": "Read-only knowledge bundle defining the canonical specification vocabulary (Functional Domain, Capability, Asset, Dataset, Feature, Process, Activity, Task, Golden Data) and the 6-level system hierarchization tree (Domain → Requirement → Process → Step → Feature → Use Case / Acceptance Criteria), with EARS and BPMN authoring conventions. Activates whenever an agent must classify a piece of input data or organize a heterogeneous input list into a coherent system tree.",
+      "source": "./plugins/input-hierarchization",
+      "tags": ["community", "test-enablement", "knowledge", "specification", "requirements", "ears", "bpmn", "taxonomy"],
       "category": "knowledge"
     },
     {
